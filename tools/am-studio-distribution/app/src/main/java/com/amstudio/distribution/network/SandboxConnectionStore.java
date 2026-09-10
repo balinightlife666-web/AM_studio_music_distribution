@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 public final class SandboxConnectionStore {
     private static final String PREFS = "am_studio_sandbox_connection";
     private static final String KEY_BASE_URL = "base_url";
+    private static final String DEFAULT_BASE_URL = "https://am-studio.hatchable.site/api";
 
     private final SharedPreferences preferences;
     private volatile String sessionToken = "";
@@ -15,7 +16,8 @@ public final class SandboxConnectionStore {
     }
 
     public String getBaseUrl() {
-        return preferences.getString(KEY_BASE_URL, "");
+        String saved = preferences.getString(KEY_BASE_URL, "");
+        return saved == null || saved.trim().isEmpty() ? DEFAULT_BASE_URL : saved.trim();
     }
 
     public void setBaseUrl(String value) {
@@ -36,6 +38,6 @@ public final class SandboxConnectionStore {
     }
 
     public boolean isConfigured() {
-        return !getBaseUrl().isEmpty() && !sessionToken.isEmpty();
+        return !getBaseUrl().isEmpty();
     }
 }
