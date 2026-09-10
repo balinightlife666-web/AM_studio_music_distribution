@@ -7,16 +7,18 @@ Phase: A — LEDGER-READY SANDBOX / SIGNED BASELINE + HTTPS HOST NEXT
 ## Source
 - Canonical repository: `balinightlife666-web/AM_studio_music_distribution`
 - Canonical branch: `main`
+- Canonical head after migration/CI setup: `e0dcc7a752472a5c9d1992230685a44f3a551b88`
 - Migration source: `balinightlife666-web/ACC-Android-Builder` / `feat/am-studio-distribution-foundation` / head `ff33ef11ce4ac7b4ff522d923f34125d5b3139cc`
 - Migration source PR: #92 (DRAFT / UNMERGED in the old mixed repository)
 - Android package: `com.amstudio.distribution`
 - App version: `0.5.0-ledger-ready` / versionCode 5
-- Source-repo v0.5 development/debug CI run: `34380022664` — PASS
-- Source-repo v0.5 backend test run: `34380022681` — PASS
-- Source-repo royalty/provider foundation validation run: `34379524546` — PASS
-- Dedicated-repo CI evidence: PENDING until workflows run on this repository
+- Dedicated-repo Android/debug CI run: `34432846258` — PASS
+- Dedicated-repo backend/provider/ledger CI run: `34432831564` — PASS
+- Dedicated-repo debug artifact: `10135122029` / `AM-STUDIO-Distribution-v0.5.0-debug-ci`
+- Debug artifact archive digest: `sha256:6be3343b619feaa70f93c5bb4eac0907cd7fac3da6ebcea98ec58468e8e80ee5`
+- Signed-release job on automatic push: SKIPPED BY DESIGN
 
-## Android implemented and source-repo CI-verified
+## Android implemented and dedicated-repo CI-verified
 - Dedicated package `com.amstudio.distribution`
 - AM STUDIO branding / launcher icon
 - Home / Releases / New Release / Earnings / Account
@@ -55,7 +57,7 @@ Phase: A — LEDGER-READY SANDBOX / SIGNED BASELINE + HTTPS HOST NEXT
 - Signing authority: `SIGNING.md`.
 - GitHub Actions secret provisioning: PENDING, therefore no APK is yet claimed UPGRADE-SAFE.
 
-## Backend implemented and source-repo test-verified
+## Backend implemented and dedicated-repo test-verified
 - Node 22 backend
 - Bearer auth boundary
 - Durable atomic JSON persistence adapter
@@ -98,11 +100,10 @@ Phase: A — LEDGER-READY SANDBOX / SIGNED BASELINE + HTTPS HOST NEXT
 - Fee/split/tax/payout logic remains a separate future engine that must append explicit entries
 
 ## Runtime evidence status
-- Source-repo Android v0.5 development/debug CI compile/package: PASS
-- Source-repo backend/provider/ledger automated tests: PASS
-- Dedicated-repo Android/debug CI: PENDING
-- Dedicated-repo backend/provider/ledger CI: PENDING
-- Permanent signed-release build: BLOCKED by Actions secret provisioning
+- Dedicated-repo Android v0.5 development/debug compile/package: PASS — run `34432846258`
+- Dedicated-repo backend/provider/ledger automated tests: PASS — run `34432831564`
+- Debug artifact upload: PASS — artifact `10135122029`
+- Permanent signed-release build: NOT RUN; Actions secret provisioning still pending
 - Physical signed Android baseline install: PENDING
 - Launcher/icon visual QC on signed channel: PENDING
 - Audio picker real-device QC: PENDING
@@ -129,18 +130,17 @@ Phase: A — LEDGER-READY SANDBOX / SIGNED BASELINE + HTTPS HOST NEXT
 - Fraud/takedown/admin production operations
 
 ## Next implementation order
-1. Complete and verify dedicated-repository CI after migration.
-2. Provision the four permanent Android signing values as GitHub Actions secrets in this dedicated repository and run the FIRST v0.5 Signed Release.
-3. Verify emitted signing fingerprint exactly equals the permanent fingerprint above.
-4. Install that signed baseline once; uninstall old debug APK only if Android requires migration.
-5. Provision a public HTTPS sandbox host and deploy backend with provider disabled.
-6. Test Account -> `/v1/me`, `/v1/wallet`, `/v1/royalties/ledger` from physical Android.
-7. Run Android -> backend real release upload E2E with WAV/FLAC + artwork.
-8. Replace DEV persistence/auth/storage with production adapters while preserving contracts.
-9. Complete LabelGrid commercial sandbox onboarding + token/IP allowlist.
-10. Resolve live provider artist/label/track/release schemas and produce canonical -> provider payload mapping without guessed fields.
-11. Run provider sandbox assets -> QC -> distribution -> delivery-status evidence.
-12. KYC/admin moderation -> automated royalty ingestion -> splits/fees/tax -> payout -> controlled beta -> multi-provider -> direct DSP/DDEX evolution.
+1. Provision the four permanent Android signing values as GitHub Actions secrets in this dedicated repository and run the FIRST v0.5 Signed Release.
+2. Verify emitted signing fingerprint exactly equals the permanent fingerprint above.
+3. Install that signed baseline once; uninstall old debug APK only if Android requires migration.
+4. Provision a public HTTPS sandbox host and deploy backend with provider disabled.
+5. Test Account -> `/v1/me`, `/v1/wallet`, `/v1/royalties/ledger` from physical Android.
+6. Run Android -> backend real release upload E2E with WAV/FLAC + artwork.
+7. Replace DEV persistence/auth/storage with production adapters while preserving contracts.
+8. Complete LabelGrid commercial sandbox onboarding + token/IP allowlist.
+9. Resolve live provider artist/label/track/release schemas and produce canonical -> provider payload mapping without guessed fields.
+10. Run provider sandbox assets -> QC -> distribution -> delivery-status evidence.
+11. KYC/admin moderation -> automated royalty ingestion -> splits/fees/tax -> payout -> controlled beta -> multi-provider -> direct DSP/DDEX evolution.
 
 ## Safety lock
 Do not call a release LIVE, monetized, royalty-bearing, production-distributed, payout-eligible, or UPGRADE-SAFE unless corresponding provider/DSP/ledger/signing evidence exists.
