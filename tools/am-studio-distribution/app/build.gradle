@@ -2,6 +2,14 @@ plugins {
     id 'com.android.application'
 }
 
+// Release-signing environment is defined at script scope so both the Android
+// configuration and the fail-closed task-graph guard can read the same state.
+def signingPath = System.getenv('AM_STUDIO_KEYSTORE_PATH')
+def signingStorePassword = System.getenv('AM_STUDIO_KEYSTORE_PASSWORD')
+def signingAlias = System.getenv('AM_STUDIO_KEY_ALIAS')
+def signingKeyPassword = System.getenv('AM_STUDIO_KEY_PASSWORD')
+def hasReleaseSigning = signingPath && signingStorePassword && signingAlias && signingKeyPassword
+
 android {
     namespace 'com.amstudio.distribution'
     compileSdk 35
@@ -13,12 +21,6 @@ android {
         versionCode 5
         versionName '0.5.0-ledger-ready'
     }
-
-    def signingPath = System.getenv('AM_STUDIO_KEYSTORE_PATH')
-    def signingStorePassword = System.getenv('AM_STUDIO_KEYSTORE_PASSWORD')
-    def signingAlias = System.getenv('AM_STUDIO_KEY_ALIAS')
-    def signingKeyPassword = System.getenv('AM_STUDIO_KEY_PASSWORD')
-    def hasReleaseSigning = signingPath && signingStorePassword && signingAlias && signingKeyPassword
 
     signingConfigs {
         if (hasReleaseSigning) {
