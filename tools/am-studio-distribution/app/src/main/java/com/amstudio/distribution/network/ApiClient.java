@@ -15,14 +15,13 @@ import java.nio.charset.StandardCharsets;
 public final class ApiClient {
     private final ContentResolver resolver;
     private final String baseUrl;
-    private final String bearerToken;
+    private volatile String bearerToken;
 
     public ApiClient(ContentResolver resolver, String baseUrl, String bearerToken) {
         this.resolver = resolver;
         this.baseUrl = ApiConfig.normalizeBaseUrl(baseUrl);
         this.bearerToken = bearerToken == null ? "" : bearerToken.trim();
         if (this.baseUrl.isEmpty()) throw new IllegalArgumentException("AM STUDIO API is not configured");
-        if (this.bearerToken.isEmpty()) throw new IllegalArgumentException("AM STUDIO session token is missing");
     }
 
     public JSONObject getMe() throws Exception {
@@ -56,15 +55,34 @@ public final class ApiClient {
     }
 
     public JSONObject uploadContent(String targetPath, Uri uri, long sizeBytes) throws Exception {
-        HttpURLConnection connection = open("PUT", targetPath);
-        connection.setRequestProperty("Content-Type", "application/octet-stream");
+        ensureSession();
+        String boundary = "AMStudioBoundary" + System.currentTimeMillis();
+        byte[] prefix = ("--" + boundary + "\r\n"
+                + "Content-Disposition: form-data; name=\"file\"; filename=\"asset.bin\"\r\n"
+                + "Content-Type: application/octet-stream\r\n\r\n").getBytes(StandardCharsets.UTF_8);
+        byte[] suffix = ("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8);
+        long totalLength = prefix.length + sizeBytes + suffix.length;
+
+        String normalizedPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
+        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + normalizedPath).openConnection();
+        connection.setRequestMethod("PUT");
+        connection.setConnectTimeout(15_000);
+        connection.setReadTimeout(60_000);
+        connection.setUseCaches(false);
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Authorization", "Bearer " + bearerToken);
+        connection.setRequestProperty("X-AM-Client", "android");
+        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
         connection.setDoOutput(true);
-        connection.setFixedLengthStreamingMode(sizeBytes);
+        connection.setFixedLengthStreamingMode(totalLength);
+
         try (InputStream input = resolver.openInputStream(uri); OutputStream output = connection.getOutputStream()) {
             if (input == null) throw new IllegalStateException("Selected file cannot be opened");
+            output.write(prefix);
             byte[] buffer = new byte[64 * 1024];
             int read;
             while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
+            output.write(suffix);
         }
         return readJson(connection);
     }
@@ -100,6 +118,7 @@ public final class ApiClient {
     }
 
     private HttpURLConnection open(String method, String path) throws Exception {
+        ensureSession();
         String normalizedPath = path.startsWith("/") ? path : "/" + path;
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + normalizedPath).openConnection();
         connection.setRequestMethod(method);
@@ -110,6 +129,28 @@ public final class ApiClient {
         connection.setRequestProperty("Authorization", "Bearer " + bearerToken);
         connection.setRequestProperty("X-AM-Client", "android");
         return connection;
+    }
+
+    private synchronized void ensureSession() throws Exception {
+        if (!bearerToken.isEmpty()) return;
+        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + "/v1/auth/session").openConnection();
+        connection.setRequestMethod("POST");
+        connection.setConnectTimeout(15_000);
+        connection.setReadTimeout(30_000);
+        connection.setUseCaches(false);
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+        connection.setRequestProperty("X-AM-Client", "android");
+        byte[] data = "{}".getBytes(StandardCharsets.UTF_8);
+        connection.setDoOutput(true);
+        connection.setFixedLengthStreamingMode(data.length);
+        try (OutputStream output = connection.getOutputStream()) {
+            output.write(data);
+        }
+        JSONObject response = readJson(connection);
+        String token = response.optString("token", "").trim();
+        if (token.isEmpty()) throw new IllegalStateException("Sandbox session did not return a bearer token");
+        bearerToken = token;
     }
 
     private JSONObject readJson(HttpURLConnection connection) throws Exception {
