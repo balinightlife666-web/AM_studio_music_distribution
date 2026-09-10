@@ -65,7 +65,7 @@ public final class ApiClient {
 
         String normalizedPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
         HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + normalizedPath).openConnection();
-        connection.setRequestMethod("PUT");
+        connection.setRequestMethod("POST");
         connection.setConnectTimeout(15_000);
         connection.setReadTimeout(60_000);
         connection.setUseCaches(false);
