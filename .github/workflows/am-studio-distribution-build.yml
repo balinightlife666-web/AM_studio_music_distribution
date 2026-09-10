@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   debug_ci:
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
@@ -69,7 +69,7 @@ jobs:
           if-no-files-found: error
 
   signed_release:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
