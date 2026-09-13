@@ -93,7 +93,7 @@ public final class MainActivity extends Activity {
         copy.setOrientation(LinearLayout.VERTICAL);
         copy.setPadding(dp(12), 0, 0, 0);
         copy.addView(text("AM STUDIO", 18, TEXT, Typeface.BOLD));
-        copy.addView(text("MUSIC DISTRIBUTION • LEDGER READY", 9, MUTED, Typeface.BOLD));
+        copy.addView(text("MUSIC DISTRIBUTION • PUBLIC SANDBOX", 9, MUTED, Typeface.BOLD));
         brand.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView badge = text(connectionStore.isConfigured() ? "CONNECTED" : "SANDBOX", 9,
@@ -126,7 +126,7 @@ public final class MainActivity extends Activity {
         LinearLayout page = pageColumn();
         page.addView(kicker("DISTRIBUTE • TRACK • EARN"));
         page.addView(title("Backend-ready music distribution."));
-        page.addView(body("AM STUDIO memisahkan APK, katalog canonical, backend, provider adapter, dan royalty ledger. v0.5 siap membaca wallet server-authoritative tanpa menghitung saldo di perangkat."));
+        page.addView(body("AM STUDIO memisahkan APK, katalog canonical, backend, provider adapter, dan royalty ledger. Wallet tetap server-authoritative dan saldo tidak dihitung di perangkat."));
 
         Button create = primaryButton("+ NEW RELEASE");
         create.setOnClickListener(v -> showNewRelease());
@@ -172,7 +172,7 @@ public final class MainActivity extends Activity {
 
         ScrollView scroll = pageScroll();
         LinearLayout page = pageColumn();
-        page.addView(kicker("RELEASE WIZARD • v0.5"));
+        page.addView(kicker("RELEASE WIZARD • PUBLIC SANDBOX"));
         page.addView(title("Build & submit release"));
         page.addView(body("Local preflight dijalankan lebih dulu. Saat backend sandbox terhubung, APK menghitung checksum + exact byte size lalu upload langsung ke AM STUDIO API."));
 
@@ -295,7 +295,7 @@ public final class MainActivity extends Activity {
         page.addView(preflight, buttonLp());
         page.addView(save, buttonLp());
         page.addView(submit, buttonLp());
-        TextView warning = body("Provider DSP tetap DISABLED sampai akun/API provider resmi dikontrak dan sandbox evidence tersedia. Submit v0.5 hanya masuk AM STUDIO backend review.");
+        TextView warning = body("Provider DSP tetap DISABLED sampai akun/API provider resmi dikontrak dan sandbox evidence tersedia. Submit hanya masuk AM STUDIO backend review.");
         warning.setTextColor(WARNING);
         warning.setPadding(0, dp(18), 0, dp(24));
         page.addView(warning);
@@ -451,9 +451,9 @@ public final class MainActivity extends Activity {
         page.addView(clear, buttonLp());
 
         page.addView(sectionHeader("STATUS"));
-        page.addView(infoCard("App identity", "com.amstudio.distribution • 0.5.0-ledger-ready"));
+        page.addView(infoCard("App identity", "com.amstudio.distribution • " + BuildConfig.VERSION_NAME));
         page.addView(infoCard("Backend", connectionStore.getBaseUrl().isEmpty() ? "NOT CONFIGURED" : connectionStore.getBaseUrl()));
-        page.addView(infoCard("Provider adapter", "LabelGrid target • DISABLED until commercial sandbox token"));
+        page.addView(infoCard("Provider adapter", "Server-side provider integration • DISABLED until contracted credentials exist"));
         page.addView(infoCard("Royalty ledger", "APPEND-ONLY backend foundation • no device-side balance authority"));
         page.addView(infoCard("KYC / KYB", "NOT CONNECTED"));
         page.addView(infoCard("Payout", "NOT CONNECTED"));
