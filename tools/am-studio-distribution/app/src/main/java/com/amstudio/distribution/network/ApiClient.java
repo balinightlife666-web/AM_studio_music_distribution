@@ -54,7 +54,41 @@ public final class ApiClient {
         return requestJson("POST", "/v1/uploads", body);
     }
 
-    public JSONObject uploadContent(String targetPath, Uri uri, long sizeBytes) throws Exception {
+    public JSONObject uploadContent(String target, String method, String mime, Uri uri, long sizeBytes) throws Exception {
+        String uploadMethod = method == null ? "POST" : method.trim().toUpperCase();
+        if ((target.startsWith("https://") || target.startsWith("http://")) && "PUT".equals(uploadMethod)) {
+            return uploadSignedContent(target, mime, uri, sizeBytes);
+        }
+        return uploadMultipartContent(target, uri, sizeBytes);
+    }
+
+    public JSONObject uploadContent(String target, Uri uri, long sizeBytes) throws Exception {
+        return uploadContent(target, "POST", "application/octet-stream", uri, sizeBytes);
+    }
+
+    private JSONObject uploadSignedContent(String targetUrl, String mime, Uri uri, long sizeBytes) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(targetUrl).openConnection();
+        connection.setRequestMethod("PUT");
+        connection.setConnectTimeout(20_000);
+        connection.setReadTimeout(120_000);
+        connection.setUseCaches(false);
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Content-Type", mime == null || mime.trim().isEmpty() ? "application/octet-stream" : mime.trim());
+        connection.setRequestProperty("Cache-Control", "max-age=3600");
+        connection.setRequestProperty("x-upsert", "false");
+        connection.setDoOutput(true);
+        connection.setFixedLengthStreamingMode(sizeBytes);
+
+        try (InputStream input = resolver.openInputStream(uri); OutputStream output = connection.getOutputStream()) {
+            if (input == null) throw new IllegalStateException("Selected file cannot be opened");
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
+        }
+        return readJson(connection);
+    }
+
+    private JSONObject uploadMultipartContent(String targetPath, Uri uri, long sizeBytes) throws Exception {
         ensureSession();
         String boundary = "AMStudioBoundary" + System.currentTimeMillis();
         byte[] prefix = ("--" + boundary + "\r\n"
