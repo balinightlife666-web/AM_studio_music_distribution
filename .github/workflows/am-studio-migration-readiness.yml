@@ -1,0 +1,49 @@
+name: AM STUDIO Migration Readiness
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      AM_STUDIO_ADMIN_TOKEN: ${{ secrets.AM_STUDIO_ADMIN_TOKEN }}
+      SUPABASE_FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }}
+    steps:
+      - name: Check deployment configuration without exposing values
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID AM_STUDIO_ADMIN_TOKEN; do
+            if [ -n "${!name:-}" ]; then
+              echo "$name=PRESENT"
+            else
+              echo "$name=MISSING"
+              missing=1
+            fi
+          done
+          if [ -n "${SUPABASE_FUNCTION_URL:-}" ]; then
+            echo "SUPABASE_FUNCTION_URL=PRESENT"
+          else
+            echo "SUPABASE_FUNCTION_URL=MISSING"
+          fi
+          echo ""
+          if [ "$missing" -eq 0 ]; then
+            echo "MIGRATION_DEPLOYMENT_CREDENTIALS=READY"
+          else
+            echo "MIGRATION_DEPLOYMENT_CREDENTIALS=INCOMPLETE"
+          fi
+          exit 0
