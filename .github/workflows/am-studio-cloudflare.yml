@@ -1,0 +1,65 @@
+name: AM STUDIO Cloudflare Gateway
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'cloudflare/**'
+      - 'web/admin/**'
+      - 'wrangler.jsonc'
+      - '.github/workflows/am-studio-cloudflare.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'cloudflare/**'
+      - 'web/admin/**'
+      - 'wrangler.jsonc'
+      - '.github/workflows/am-studio-cloudflare.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: am-studio-cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Worker bundle
+        run: npx --yes wrangler@latest deploy --dry-run --outdir .wrangler-dry-run
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SUPABASE_FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Cloudflare deployment configuration
+        id: config
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$SUPABASE_FUNCTION_URL" ]; then
+            echo 'ready=yes' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=no' >> "$GITHUB_OUTPUT"
+            echo 'Cloudflare deploy skipped: deployment credentials or SUPABASE_FUNCTION_URL are not configured yet.'
+          fi
+
+      - name: Deploy Worker + Admin
+        if: steps.config.outputs.ready == 'yes'
+        run: npx --yes wrangler@latest deploy --var "SUPABASE_FUNCTION_URL:$SUPABASE_FUNCTION_URL"
