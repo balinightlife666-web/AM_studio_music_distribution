@@ -1,4 +1,4 @@
-name: AM STUDIO Cloudflare Backend
+name: AM STUDIO Cloudflare Backend Check
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: am-studio-cloudflare-${{ github.ref }}
+  group: am-studio-cloudflare-check-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,42 +37,5 @@ jobs:
       - name: Validate Worker bundle
         run: npx --yes wrangler@latest deploy --dry-run --outdir .wrangler-dry-run
 
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: validate
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Require Cloudflare deployment credentials
-        run: |
-          set -euo pipefail
-          test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
-
-      - name: Deploy Worker and auto-provision D1/R2 bindings
-        run: |
-          set -euo pipefail
-          npx --yes wrangler@latest deploy 2>&1 | tee /tmp/am-studio-wrangler-deploy.log
-
-      - name: Apply D1 migrations
-        run: npx --yes wrangler@latest d1 migrations apply DB --remote --yes
-
-      - name: Redeploy after schema migration
-        run: npx --yes wrangler@latest deploy
-
-      - name: Smoke test public health endpoint
-        run: |
-          set -euo pipefail
-          url="$(grep -Eo 'https://[^ ]+\.workers\.dev' /tmp/am-studio-wrangler-deploy.log | tail -1 || true)"
-          if [ -z "$url" ]; then
-            echo 'Worker URL was not found in Wrangler output; deployment itself completed.'
-            exit 0
-          fi
-          echo "Testing $url/api/health"
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$url/api/health"
+      - name: Deployment path
+        run: echo 'Public deployment is handled by the existing Cloudflare Git integration. No repository-level Cloudflare API token is required by this workflow.'
