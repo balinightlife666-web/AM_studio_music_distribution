@@ -65,9 +65,10 @@ public final class BackendReleaseOrchestrator {
         String assetId = session.optString("assetId", "");
         JSONObject upload = session.optJSONObject("upload");
         String target = upload == null ? "" : upload.optString("target", "");
+        String method = upload == null ? "POST" : upload.optString("method", "POST");
         if (assetId.isEmpty() || target.isEmpty()) throw new IllegalStateException("Backend upload session is incomplete");
 
-        api.uploadContent(target, uri, fingerprint.sizeBytes);
+        api.uploadContent(target, method, mime, uri, fingerprint.sizeBytes);
         api.completeUpload(assetId, durationMs, width, height);
         return assetId;
     }
