@@ -56,8 +56,12 @@ public final class ApiClient {
 
     public JSONObject uploadContent(String target, String method, String mime, Uri uri, long sizeBytes) throws Exception {
         String uploadMethod = method == null ? "POST" : method.trim().toUpperCase();
-        if ((target.startsWith("https://") || target.startsWith("http://")) && "PUT".equals(uploadMethod)) {
+        boolean absoluteTarget = target.startsWith("https://") || target.startsWith("http://");
+        if (absoluteTarget && "PUT".equals(uploadMethod)) {
             return uploadSignedContent(target, mime, uri, sizeBytes);
+        }
+        if ("PUT".equals(uploadMethod)) {
+            return uploadApiContent(target, mime, uri, sizeBytes);
         }
         return uploadMultipartContent(target, uri, sizeBytes);
     }
@@ -76,6 +80,30 @@ public final class ApiClient {
         connection.setRequestProperty("Content-Type", mime == null || mime.trim().isEmpty() ? "application/octet-stream" : mime.trim());
         connection.setRequestProperty("Cache-Control", "max-age=3600");
         connection.setRequestProperty("x-upsert", "false");
+        connection.setDoOutput(true);
+        connection.setFixedLengthStreamingMode(sizeBytes);
+
+        try (InputStream input = resolver.openInputStream(uri); OutputStream output = connection.getOutputStream()) {
+            if (input == null) throw new IllegalStateException("Selected file cannot be opened");
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
+        }
+        return readJson(connection);
+    }
+
+    private JSONObject uploadApiContent(String targetPath, String mime, Uri uri, long sizeBytes) throws Exception {
+        ensureSession();
+        String normalizedPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
+        HttpURLConnection connection = (HttpURLConnection) new URL(baseUrl + normalizedPath).openConnection();
+        connection.setRequestMethod("PUT");
+        connection.setConnectTimeout(20_000);
+        connection.setReadTimeout(120_000);
+        connection.setUseCaches(false);
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Authorization", "Bearer " + bearerToken);
+        connection.setRequestProperty("X-AM-Client", "android");
+        connection.setRequestProperty("Content-Type", mime == null || mime.trim().isEmpty() ? "application/octet-stream" : mime.trim());
         connection.setDoOutput(true);
         connection.setFixedLengthStreamingMode(sizeBytes);
 
