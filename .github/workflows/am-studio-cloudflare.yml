@@ -1,4 +1,4 @@
-name: AM STUDIO Cloudflare Gateway
+name: AM STUDIO Cloudflare Backend
 
 on:
   workflow_dispatch:
@@ -41,25 +41,38 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: validate
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      SUPABASE_FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check Cloudflare deployment configuration
-        id: config
+      - name: Require Cloudflare deployment credentials
         run: |
-          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$SUPABASE_FUNCTION_URL" ]; then
-            echo 'ready=yes' >> "$GITHUB_OUTPUT"
-          else
-            echo 'ready=no' >> "$GITHUB_OUTPUT"
-            echo 'Cloudflare deploy skipped: deployment credentials or SUPABASE_FUNCTION_URL are not configured yet.'
-          fi
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
 
-      - name: Deploy Worker + Admin
-        if: steps.config.outputs.ready == 'yes'
-        run: npx --yes wrangler@latest deploy --var "SUPABASE_FUNCTION_URL:$SUPABASE_FUNCTION_URL"
+      - name: Deploy Worker and auto-provision D1/R2 bindings
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@latest deploy 2>&1 | tee /tmp/am-studio-wrangler-deploy.log
+
+      - name: Apply D1 migrations
+        run: npx --yes wrangler@latest d1 migrations apply DB --remote --yes
+
+      - name: Redeploy after schema migration
+        run: npx --yes wrangler@latest deploy
+
+      - name: Smoke test public health endpoint
+        run: |
+          set -euo pipefail
+          url="$(grep -Eo 'https://[^ ]+\.workers\.dev' /tmp/am-studio-wrangler-deploy.log | tail -1 || true)"
+          if [ -z "$url" ]; then
+            echo 'Worker URL was not found in Wrangler output; deployment itself completed.'
+            exit 0
+          fi
+          echo "Testing $url/api/health"
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$url/api/health"
