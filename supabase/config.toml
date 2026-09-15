@@ -1,4 +1,0 @@
-project_id = "am-studio-distribution"
-
-[functions.am-studio]
-verify_jwt = false
