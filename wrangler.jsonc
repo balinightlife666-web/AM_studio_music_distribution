@@ -25,7 +25,8 @@
   ],
   "r2_buckets": [
     {
-      "binding": "ASSETS_BUCKET"
+      "binding": "ASSETS_BUCKET",
+      "bucket_name": "am-studio-distribution-assets"
     }
   ]
 }
