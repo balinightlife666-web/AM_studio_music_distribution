@@ -2,6 +2,12 @@
 
 Dedicated repository for the AM STUDIO Music Distribution Android client and secure backend.
 
-Current migration baseline: v0.5.0-ledger-ready from `balinightlife666-web/ACC-Android-Builder` branch `feat/am-studio-distribution-foundation`, source head `ff33ef11ce4ac7b4ff522d923f34125d5b3139cc`.
+Current infrastructure target: Cloudflare Workers + D1 + R2 with automatic Git deployment from `main`.
+
+Custom domain target: `https://distribution.nadmo.id`
+
+API base target: `https://distribution.nadmo.id/api`
+
+DSP/provider delivery remains disabled until an official provider integration is configured and verified.
 
 Production claims are evidence-gated. Permanent signing secrets are not stored in source control.
