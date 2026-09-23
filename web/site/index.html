@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b10">
+<title>AM STUDIO Music Distribution</title>
+<style>
+:root{--bg:#080b10;--panel:#11161f;--panel2:#171e29;--line:#263142;--text:#f5f8fb;--muted:#919cad;--blue:#2596ff;--green:#4fdc98;--yellow:#f2ba4b;--red:#ff6b76}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% -10%,#17375a 0,#080b10 33%);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+button,input,select{font:inherit}.shell{max-width:1120px;margin:auto;padding:18px 18px 92px}.top{display:flex;align-items:center;gap:12px;margin-bottom:20px}.logo{width:50px;height:50px;border-radius:14px;background:linear-gradient(145deg,#14243a,#0b0f15);border:1px solid var(--line);display:grid;place-items:center;font-weight:1000;font-size:20px}.brand{flex:1}.brand h1{font-size:19px;margin:0}.brand p{margin:3px 0 0;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.12em}.badge{padding:7px 10px;border-radius:99px;background:#141b25;border:1px solid var(--line);font-size:9px;font-weight:900}.ok{color:var(--green)}.warn{color:var(--yellow)}
+.hero{padding:26px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,rgba(22,33,48,.96),rgba(12,16,23,.95));box-shadow:0 28px 80px rgba(0,0,0,.25)}.kicker{font-size:10px;font-weight:1000;letter-spacing:.13em;color:var(--blue)}h2{font-size:32px;line-height:1.05;margin:8px 0 10px;max-width:720px}.lead{color:var(--muted);max-width:780px}.cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:900;cursor:pointer}.primary{background:var(--blue);color:white}.secondary{background:#1a2230;color:white;border:1px solid var(--line)}.danger{background:#4f2028;color:#ffdfe3}.btn:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.card{background:rgba(17,22,31,.95);border:1px solid var(--line);border-radius:16px;padding:16px}.metric b{display:block;font-size:28px}.metric span{font-size:9px;color:var(--muted);font-weight:900}.section{margin-top:26px}.section h3{margin:0 0 12px;font-size:18px}.release{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.release+.release{margin-top:9px}.release b{font-size:15px}.release small{display:block;color:var(--muted);margin-top:3px}.status{display:inline-block;padding:5px 8px;border-radius:99px;background:#202837;font-size:9px;font-weight:900}.IN_REVIEW{color:var(--yellow)}.APPROVED,.READY_FOR_REVIEW{color:var(--green)}.NEEDS_CHANGES,.RIGHTS_HOLD{color:var(--red)}
+.page{display:none}.page.active{display:block}.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;width:min(740px,calc(100% - 24px));display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:rgba(12,16,23,.92);backdrop-filter:blur(18px);border:1px solid var(--line);padding:7px;border-radius:18px;z-index:20}.nav button{background:transparent;color:var(--muted);border:0;border-radius:12px;padding:10px 6px;font-size:9px;font-weight:1000}.nav button.active{background:#182233;color:white}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fieldWrap{display:flex;flex-direction:column;gap:6px}.fieldWrap.full{grid-column:1/-1}.fieldWrap label{font-size:9px;color:var(--muted);font-weight:900;letter-spacing:.08em}.field{width:100%;background:#131a24;color:white;border:1px solid var(--line);border-radius:11px;padding:12px;outline:none}.field:focus{border-color:#356da6}.checkGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.check{display:flex;align-items:center;gap:8px;background:#121923;border:1px solid var(--line);padding:10px;border-radius:10px}.upload{border:1px dashed #38506a;background:#0e141d;border-radius:14px;padding:14px}.upload input{width:100%;color:var(--muted)}.hint{color:var(--muted);font-size:11px}.state{margin-top:12px;padding:12px;border-radius:12px;background:#101722;border:1px solid var(--line);color:var(--muted);white-space:pre-wrap}.state.good{color:var(--green)}.state.bad{color:var(--yellow)}
+.wallet{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.money{font-size:24px;font-weight:900}.empty{padding:28px;text-align:center;color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;word-break:break-all}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill{padding:6px 9px;border-radius:99px;background:#18202c;color:var(--muted);font-size:9px;font-weight:900}
+.toast{position:fixed;right:16px;top:16px;z-index:50;background:#151d28;border:1px solid var(--line);padding:12px 14px;border-radius:12px;display:none}.toast.show{display:block}
+@media(max-width:760px){.shell{padding:13px 13px 90px}.top{align-items:flex-start}.brand h1{font-size:16px}.badge{font-size:8px}.hero{padding:20px}h2{font-size:27px}.grid,.wallet{grid-template-columns:1fr 1fr}.formGrid{grid-template-columns:1fr}.fieldWrap.full{grid-column:auto}.checkGrid{grid-template-columns:1fr}.nav button{font-size:8px}.logo{width:44px;height:44px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="logo">AM</div>
+    <div class="brand"><h1>AM STUDIO MUSIC DISTRIBUTION</h1><p>WEB CLIENT • CLOUDFLARE SANDBOX</p></div>
+    <div id="healthBadge" class="badge warn">CONNECTING</div>
+  </header>
+
+  <section id="home" class="page active">
+    <div class="hero">
+      <div class="kicker">DISTRIBUTE • TRACK • EARN</div>
+      <h2>Your music distribution workspace, now on the web.</h2>
+      <p class="lead">Create canonical releases, upload master audio and artwork, run server-side preflight, submit for AM STUDIO review, and track the authoritative royalty ledger from one browser.</p>
+      <div class="cta"><button class="btn primary" onclick="go('new')">+ NEW RELEASE</button><button class="btn secondary" onclick="refreshAll()">REFRESH DATA</button></div>
+    </div>
+    <div class="grid" id="homeMetrics"></div>
+    <div class="section"><h3>Latest Releases</h3><div id="latest"></div></div>
+    <div class="section"><h3>Pipeline</h3><div class="grid"><div class="card"><b>1. Prepare</b><p class="hint">WAV/FLAC • square 3000×3000 cover • metadata • rights.</p></div><div class="card"><b>2. Upload</b><p class="hint">Browser → AM STUDIO API → checksum verification → R2.</p></div><div class="card"><b>3. Review</b><p class="hint">Server preflight → READY_FOR_REVIEW → IN_REVIEW.</p></div></div></div>
+  </section>
+
+  <section id="releases" class="page">
+    <div class="row"><div><div class="kicker">CATALOG</div><h2>Releases</h2></div><button class="btn primary" onclick="go('new')">+ RELEASE</button></div>
+    <div id="releaseList"></div>
+  </section>
+
+  <section id="new" class="page">
+    <div class="kicker">RELEASE WIZARD</div><h2>Build & submit release</h2>
+    <p class="lead">Files are hashed in your browser, uploaded directly to AM STUDIO Cloudflare storage, then verified by the backend before review.</p>
+    <div class="card">
+      <div class="formGrid">
+        <div class="fieldWrap full"><label>MASTER AUDIO • WAV / FLAC</label><div class="upload"><input id="audioFile" type="file" accept=".wav,.flac,audio/wav,audio/flac"><div id="audioMeta" class="hint">No master selected.</div></div></div>
+        <div class="fieldWrap full"><label>COVER ARTWORK • JPG / PNG • SQUARE ≥ 3000PX</label><div class="upload"><input id="artFile" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png"><div id="artMeta" class="hint">No artwork selected.</div></div></div>
+        <div class="fieldWrap"><label>RELEASE / TRACK TITLE</label><input id="title" class="field" placeholder="Title"></div>
+        <div class="fieldWrap"><label>PRIMARY ARTIST</label><input id="artist" class="field" placeholder="Artist"></div>
+        <div class="fieldWrap"><label>LABEL</label><input id="label" class="field" value="AM STUDIO"></div>
+        <div class="fieldWrap"><label>GENRE</label><input id="genre" class="field" placeholder="Genre"></div>
+        <div class="fieldWrap"><label>RELEASE DATE</label><input id="releaseDate" class="field" type="date"></div>
+        <div class="fieldWrap"><label>SONGWRITER</label><input id="songwriter" class="field" placeholder="Songwriter / lyricist"></div>
+        <div class="fieldWrap"><label>COMPOSER</label><input id="composer" class="field" placeholder="Composer"></div>
+        <div class="fieldWrap"><label>COPYRIGHT / MASTER OWNER</label><input id="copyrightOwner" class="field" placeholder="Copyright owner"></div>
+        <div class="fieldWrap full"><label>DISTRIBUTION DESTINATIONS</label><div id="destinations" class="checkGrid"></div></div>
+        <div class="fieldWrap full"><label>RIGHTS</label><label class="check"><input id="explicit" type="checkbox"> Explicit content</label><label class="check"><input id="rights" type="checkbox"> I own or control the rights/licenses required to distribute this release</label></div>
+      </div>
+      <div class="cta"><button id="saveBtn" class="btn secondary" onclick="saveDraft()">SAVE DRAFT</button><button id="submitBtn" class="btn primary" onclick="submitRelease()">UPLOAD + PREFLIGHT + SUBMIT</button></div>
+      <div id="submitState" class="state">Ready.</div>
+    </div>
+  </section>
+
+  <section id="earnings" class="page">
+    <div class="kicker">SERVER-AUTHORITATIVE LEDGER</div><h2>Earnings</h2>
+    <div id="wallet" class="wallet"></div>
+    <div class="section"><h3>Ledger</h3><div id="ledger"></div></div>
+    <div class="card section"><b>Payout engine disabled.</b><p class="hint">KYC, tax, payout threshold and payment rails are not enabled in this sandbox.</p></div>
+  </section>
+
+  <section id="account" class="page">
+    <div class="kicker">ACCOUNT & BACKEND</div><h2>Connection</h2>
+    <div class="card"><div class="row"><b>API</b><span class="pill">CLOUDFLARE</span></div><p class="mono">https://distribution.nadmo.id/api</p></div>
+    <div class="card section" id="healthCard"></div>
+    <div class="card section"><b>Distribution provider</b><p class="hint">Disabled. Internal AM STUDIO approval does not mean DSP delivery.</p></div>
+    <div class="cta"><a class="btn secondary" href="/admin" style="text-decoration:none">OPEN ADMIN PANEL</a></div>
+  </section>
+</div>
+
+<nav class="nav">
+  <button data-page="home" class="active" onclick="go('home')">HOME</button>
+  <button data-page="releases" onclick="go('releases')">RELEASES</button>
+  <button data-page="new" onclick="go('new')">+ RELEASE</button>
+  <button data-page="earnings" onclick="go('earnings')">EARNINGS</button>
+  <button data-page="account" onclick="go('account')">ACCOUNT</button>
+</nav>
+<div id="toast" class="toast"></div>
+
+<script>
+const API='/api';
+const STORES=['Spotify','Apple Music','TikTok','YouTube Music','Instagram / Facebook','Amazon Music','Deezer','TIDAL'];
+let sessionToken=sessionStorage.getItem('am_web_session')||'';
+let releases=[],health=null,walletData=null,ledgerData=[];
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const auth=()=>sessionToken?{'authorization':'Bearer '+sessionToken}:{};
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200)}
+async function api(path,opts={}){
+  const headers={...auth(),...(opts.headers||{})};
+  if(opts.body && !(opts.body instanceof Blob) && !(opts.body instanceof ArrayBuffer) && typeof opts.body!=='string'){headers['content-type']='application/json';opts.body=JSON.stringify(opts.body)}
+  const r=await fetch(API+path,{...opts,headers});let body={};try{body=await r.json()}catch{}
+  if(!r.ok)throw new Error(body?.error?.message||body?.error?.code||('HTTP '+r.status));return body
+}
+async function ensureSession(){
+  if(sessionToken){try{await api('/v1/me');return}catch{sessionToken='';sessionStorage.removeItem('am_web_session')}}
+  const s=await api('/v1/auth/session',{method:'POST'});sessionToken=s.token;sessionStorage.setItem('am_web_session',sessionToken);
+}
+function go(id){
+  document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));
+  if(id==='releases')renderReleases();if(id==='earnings')renderEarnings();
+  scrollTo({top:0,behavior:'smooth'});
+}
+function releaseCard(r){
+  return `<div class="card release"><div><b>${esc(r.title||'Untitled')}</b><small>${esc(r.artistName||'—')} • ${esc(r.releaseDate||'—')}</small><small class="mono">${esc(r.id||'')}</small></div><span class="status ${esc(r.status)}">${esc(r.status||'DRAFT')}</span></div>`;
+}
+function renderHome(){
+  const review=releases.filter(r=>r.status==='IN_REVIEW').length, approved=releases.filter(r=>r.status==='APPROVED').length;
+  $('#homeMetrics').innerHTML=`<div class="card metric"><b>${releases.length}</b><span>RELEASES</span></div><div class="card metric"><b>${review}</b><span>IN REVIEW</span></div><div class="card metric"><b>${approved}</b><span>APPROVED</span></div>`;
+  $('#latest').innerHTML=releases.length?releases.slice(0,4).map(releaseCard).join(''):'<div class="card empty">No releases yet.</div>';
+}
+function renderReleases(){ $('#releaseList').innerHTML=releases.length?releases.map(releaseCard).join(''):'<div class="card empty">Catalog is empty.</div>' }
+function renderEarnings(){
+  const cur=walletData?.wallet?.currencies||{};const cards=[];
+  for(const [currency,buckets] of Object.entries(cur)) for(const [bucket,amount] of Object.entries(buckets)) cards.push(`<div class="card"><span class="hint">${esc(currency)} • ${esc(bucket)}</span><div class="money">${esc(amount)}</div><small class="hint">minor units</small></div>`);
+  $('#wallet').innerHTML=cards.join('')||'<div class="card empty">No royalty balance yet.</div>';
+  $('#ledger').innerHTML=ledgerData.length?ledgerData.map(x=>`<div class="card release"><div><b>${esc(x.eventType)}</b><small>${esc(x.currency)} ${esc(x.amountMinor)} • ${esc(x.bucket)}</small></div><small>${esc(new Date(x.createdAt).toLocaleString())}</small></div>`).join(''):'<div class="card empty">No ledger entries.</div>';
+}
+function renderHealth(){
+  const ok=health?.ok;
+  $('#healthBadge').textContent=ok?'CONNECTED':'DEGRADED';$('#healthBadge').className='badge '+(ok?'ok':'warn');
+  $('#healthCard').innerHTML=`<div class="row"><b>Backend health</b><span class="status ${ok?'READY_FOR_REVIEW':'RIGHTS_HOLD'}">${ok?'ONLINE':'CHECK'}</span></div><p class="hint">Database: ${esc(health?.database||'—')} • Storage: ${esc(health?.objectStorage||'—')} • Host: ${esc(health?.host||'—')}</p><p class="hint">DSP delivery: ${health?.dspDeliveryEnabled?'ENABLED':'DISABLED'} • Provider: ${esc(health?.distributionProvider||'disabled')}</p>`;
+}
+async function refreshAll(){
+  try{
+    health=await fetch(API+'/health').then(r=>r.json());
+    await ensureSession();
+    const [r,w,l]=await Promise.all([api('/v1/releases'),api('/v1/wallet'),api('/v1/royalties/ledger')]);
+    releases=r.releases||[];walletData=w;ledgerData=l.entries||[];
+    renderHealth();renderHome();renderReleases();renderEarnings();
+  }catch(e){$('#healthBadge').textContent='ERROR';$('#healthBadge').className='badge warn';toast(e.message||String(e))}
+}
+function formPayload(audioAssetId='',artworkAssetId=''){
+  return {
+    title:$('#title').value.trim(),artistName:$('#artist').value.trim(),labelName:$('#label').value.trim()||'AM STUDIO',
+    genre:$('#genre').value.trim(),releaseDate:$('#releaseDate').value,songwriter:$('#songwriter').value.trim(),
+    composer:$('#composer').value.trim(),copyrightOwner:$('#copyrightOwner').value.trim(),explicitContent:$('#explicit').checked,
+    rightsConfirmed:$('#rights').checked,audioAssetId,artworkAssetId,
+    destinations:[...document.querySelectorAll('input[name=store]:checked')].map(x=>x.value)
+  };
+}
+function setState(t,kind=''){const e=$('#submitState');e.textContent=t;e.className='state '+kind}
+async function sha256(file){const b=await file.arrayBuffer();const d=await crypto.subtle.digest('SHA-256',b);return 'sha256:'+Array.from(new Uint8Array(d),x=>x.toString(16).padStart(2,'0')).join('')}
+async function imageInfo(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const v={width:im.naturalWidth,height:im.naturalHeight};URL.revokeObjectURL(u);res(v)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Cannot read artwork dimensions'))};im.src=u})}
+async function audioInfo(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),a=new Audio();a.preload='metadata';a.onloadedmetadata=()=>{const ms=Math.max(1,Math.round(a.duration*1000));URL.revokeObjectURL(u);res({durationMs:ms})};a.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('Cannot read audio duration in this browser'))};a.src=u})}
+async function uploadAsset(file,kind,meta){
+  const checksum=await sha256(file);
+  const s=await api('/v1/uploads',{method:'POST',body:{kind,fileName:file.name,mime:file.type||'application/octet-stream',sizeBytes:file.size,checksum}});
+  const target=s.upload.target;
+  await api(target,{method:'PUT',headers:{'content-type':file.type||'application/octet-stream'},body:file});
+  const c=await api('/v1/uploads/'+encodeURIComponent(s.assetId)+'/complete',{method:'POST',body:meta});
+  return c.assetId;
+}
+async function saveDraft(){
+  const p=formPayload();
+  if(!p.title||!p.artistName){setState('Title and artist are required to save a draft.','bad');return}
+  $('#saveBtn').disabled=true;
+  try{await ensureSession();const r=await api('/v1/releases',{method:'POST',body:p});setState('Draft saved: '+r.release.id,'good');await refreshAll();toast('Draft saved')}catch(e){setState(e.message||String(e),'bad')}finally{$('#saveBtn').disabled=false}
+}
+async function submitRelease(){
+  const audio=$('#audioFile').files[0], art=$('#artFile').files[0], p=formPayload();
+  const missing=[];if(!audio)missing.push('audio');if(!art)missing.push('artwork');if(!p.title)missing.push('title');if(!p.artistName)missing.push('artist');if(!p.genre)missing.push('genre');if(!p.releaseDate)missing.push('release date');if(!p.copyrightOwner)missing.push('copyright owner');if(!p.rightsConfirmed)missing.push('rights confirmation');if(!p.destinations.length)missing.push('destination');
+  if(missing.length){setState('Missing: '+missing.join(', '),'bad');return}
+  $('#submitBtn').disabled=true;$('#saveBtn').disabled=true;
+  try{
+    await ensureSession();
+    setState('Reading media metadata…');
+    const [ai,ii]=await Promise.all([audioInfo(audio),imageInfo(art)]);
+    if(ii.width<3000||ii.height<3000||ii.width!==ii.height)throw new Error('Artwork must be square and at least 3000×3000 px');
+    setState('Hashing + uploading master audio…');
+    const audioId=await uploadAsset(audio,'AUDIO_MASTER',ai);
+    setState('Hashing + uploading artwork…');
+    const artId=await uploadAsset(art,'ARTWORK',ii);
+    setState('Creating canonical release…');
+    const created=await api('/v1/releases',{method:'POST',body:formPayload(audioId,artId)});const id=created.release.id;
+    setState('Running server preflight…');
+    const pre=await api('/v1/releases/'+encodeURIComponent(id)+'/preflight',{method:'POST'});
+    if(!pre.ok)throw new Error('Preflight blocked: '+(pre.issues||[]).map(x=>x.code).join(', '));
+    setState('Submitting to AM STUDIO review…');
+    await api('/v1/releases/'+encodeURIComponent(id)+'/submit-review',{method:'POST'});
+    setState('Submitted successfully. Status: IN_REVIEW\nRelease ID: '+id,'good');
+    await refreshAll();toast('Release submitted');
+  }catch(e){setState(e.message||String(e),'bad')}finally{$('#submitBtn').disabled=false;$('#saveBtn').disabled=false}
+}
+function bindFileInfo(){
+  $('#audioFile').addEventListener('change',async()=>{const f=$('#audioFile').files[0];if(!f){$('#audioMeta').textContent='No master selected.';return}$('#audioMeta').textContent=f.name+' • '+Math.round(f.size/1024/1024*100)/100+' MB';try{const m=await audioInfo(f);$('#audioMeta').textContent+=' • '+Math.round(m.durationMs/1000)+' sec'}catch{}});
+  $('#artFile').addEventListener('change',async()=>{const f=$('#artFile').files[0];if(!f){$('#artMeta').textContent='No artwork selected.';return}$('#artMeta').textContent=f.name;try{const m=await imageInfo(f);$('#artMeta').textContent+=' • '+m.width+'×'+m.height}catch{}});
+}
+$('#destinations').innerHTML=STORES.map((s,i)=>`<label class="check"><input type="checkbox" name="store" value="${esc(s)}" ${i<4?'checked':''}> ${esc(s)}</label>`).join('');
+bindFileInfo();refreshAll();
+</script>
+</body>
+</html>

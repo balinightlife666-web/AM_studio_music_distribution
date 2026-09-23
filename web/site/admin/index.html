@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b10">
+<title>AM STUDIO Distribution Admin</title>
+<style>
+:root{--bg:#080b10;--panel:#11161f;--panel2:#0d1219;--line:#252d3a;--text:#f4f7fb;--muted:#9099aa;--green:#4fdc98;--yellow:#f2ba4b;--red:#ff6b76;--blue:#2596ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#102238 0,#080b10 34%);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}.wrap{max-width:1280px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:18px}.brand h1{font-size:22px;margin:0}.brand p{margin:4px 0 0;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em}.chip{padding:8px 11px;border:1px solid var(--line);border-radius:99px;background:var(--panel);font-size:10px;font-weight:900}.ok{color:var(--green)}.warn{color:var(--yellow)}.nav{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:18px}.nav button{border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:10px 14px;border-radius:10px;font-weight:900;white-space:nowrap}.nav button.active{color:white;border-color:#335d88;background:#102238}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:rgba(17,22,31,.94);border:1px solid var(--line);border-radius:16px;padding:16px}.metric b{font-size:28px;display:block}.metric span{color:var(--muted);font-size:10px;font-weight:900}.sectionTitle{font-size:18px;margin:24px 0 12px}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel)}table{width:100%;border-collapse:collapse;min-width:760px}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:10px;letter-spacing:.07em;color:var(--muted);background:#0e131b}.muted,small{color:var(--muted)}.status{display:inline-block;padding:5px 8px;border-radius:99px;background:#202735;font-size:10px;font-weight:900}.IN_REVIEW{color:var(--yellow)}.APPROVED{color:var(--green)}.NEEDS_CHANGES,.RIGHTS_HOLD,.CHECKSUM_FAILED{color:var(--red)}.READY_FOR_REVIEW,.VERIFIED{color:var(--green)}.release{cursor:pointer}.release:hover{background:#151c27}.btn{border:0;border-radius:10px;padding:10px 12px;font-weight:900;cursor:pointer}.primary{background:var(--blue);color:white}.approve{background:var(--green);color:#07120c}.changes{background:var(--yellow);color:#171104}.hold{background:#5a2730;color:#ffdce1}.secondary{background:#202735;color:white;border:1px solid var(--line)}.empty{padding:28px;text-align:center;color:var(--muted)}.provider{display:flex;align-items:center;justify-content:space-between;gap:18px}.off{color:var(--yellow)}.overlay{position:fixed;inset:0;background:rgba(4,6,9,.82);display:none;align-items:center;justify-content:center;padding:18px;z-index:20}.overlay.open{display:flex}.dialog{width:min(560px,100%);background:#0d1219;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 30px 90px #000}.dialog h2{margin:0 0 8px}.field{width:100%;background:#161d28;color:white;border:1px solid var(--line);border-radius:10px;padding:12px;margin:6px 0}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.drawer{width:min(900px,100%);max-height:88vh;overflow:auto}.media{display:grid;grid-template-columns:1fr 1fr;gap:12px}.art{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;background:#06080c;border:1px solid var(--line)}audio{width:100%;margin-top:8px}.detailGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.detailGrid div{background:#121824;border:1px solid var(--line);border-radius:10px;padding:10px}.detailGrid span{display:block;color:var(--muted);font-size:9px;font-weight:900}.toast{position:fixed;right:16px;bottom:16px;background:#141b26;border:1px solid var(--line);padding:12px 14px;border-radius:12px;display:none;z-index:40}.toast.show{display:block}@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.media{grid-template-columns:1fr}.brand h1{font-size:18px}}@media(max-width:480px){.wrap{padding:13px}.grid{grid-template-columns:1fr 1fr}.card{padding:13px}.detailGrid{grid-template-columns:1fr}.top{align-items:flex-start}.brand p{max-width:240px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><h1>AM STUDIO — DISTRIBUTION ADMIN</h1><p>REVIEW • ROYALTIES • AUDIT • PROVIDER CONTROL</p></div>
+    <button id="connection" class="chip warn" onclick="openSetup()">NOT CONNECTED</button>
+  </div>
+  <div class="nav" id="nav"></div>
+  <main id="content"><div class="card empty">Connecting…</div></main>
+</div>
+
+<div class="overlay" id="setupOverlay">
+  <div class="dialog">
+    <h2>Connect Admin</h2>
+    <p class="muted">API URL is stored on this device. Admin token lives only in this browser session.</p>
+    <input class="field" id="apiBase" placeholder="/api">
+    <input class="field" id="adminToken" type="password" placeholder="Admin token">
+    <div class="actions"><button class="btn primary" onclick="saveSetup()">SAVE & CONNECT</button><button class="btn secondary" onclick="closeSetup()">CANCEL</button></div>
+    <p id="setupState" class="muted"></p>
+  </div>
+</div>
+
+<div class="overlay" id="releaseOverlay" onclick="if(event.target===this)closeRelease()">
+  <div class="dialog drawer" id="releaseDialog"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const TABS=['overview','releases','royalties','audit','provider'];
+let tab='overview';
+let overview=null;
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const api=()=>localStorage.getItem('am_api_base')||'/api';
+const token=()=>sessionStorage.getItem('am_admin_token')||'';
+function auth(){return {'x-am-admin-token':token(),'accept':'application/json'}}
+function showToast(s){const el=$('#toast');el.textContent=s;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500)}
+function openSetup(){ $('#apiBase').value=api(); $('#adminToken').value=token(); $('#setupOverlay').classList.add('open') }
+function closeSetup(){ $('#setupOverlay').classList.remove('open') }
+function closeRelease(){ $('#releaseOverlay').classList.remove('open') }
+function normalizeBase(v){return String(v||'').trim().replace(/\/+$/,'')}
+async function saveSetup(){
+  const base=normalizeBase($('#apiBase').value), t=$('#adminToken').value.trim();
+  if(!/^https:\/\//.test(base)||!t){$('#setupState').textContent='HTTPS API URL + admin token required.';return}
+  localStorage.setItem('am_api_base',base); sessionStorage.setItem('am_admin_token',t); $('#setupState').textContent='Testing…';
+  try{await refresh();closeSetup()}catch(e){$('#setupState').textContent=e.message||String(e)}
+}
+async function request(path,opts={}){
+  const base=api();if(!base)throw new Error('API not configured');
+  const headers={...auth(),...(opts.headers||{})};
+  if(opts.body && typeof opts.body!=='string'){headers['content-type']='application/json';opts.body=JSON.stringify(opts.body)}
+  const r=await fetch(base+path,{...opts,headers});let body={};try{body=await r.json()}catch{}
+  if(!r.ok)throw new Error(body?.error?.message||`HTTP ${r.status}`);return body
+}
+function nav(){ $('#nav').innerHTML=TABS.map(x=>`<button class="${x===tab?'active':''}" onclick="setTab('${x}')">${x.toUpperCase()}</button>`).join('') }
+function setTab(x){tab=x;nav();render()}
+async function refresh(){
+  const health=await fetch(api()+'/health').then(r=>r.json());
+  if(!health.ok)throw new Error('Health check failed');
+  overview=await request('/admin/overview');
+  $('#connection').textContent='CLOUDFLARE CONNECTED';$('#connection').className='chip ok';nav();render();return overview
+}
+function metric(value,label){return `<div class="card metric"><b>${esc(value)}</b><span>${esc(label)}</span></div>`}
+function releaseTable(rows){
+  if(!rows?.length)return '<div class="card empty">No releases.</div>';
+  return `<div class="tableWrap"><table><thead><tr><th>RELEASE</th><th>ARTIST</th><th>STATUS</th><th>DATE</th><th>DESTINATIONS</th></tr></thead><tbody>${rows.map(r=>`<tr class="release" onclick="openRelease('${esc(r.id)}')"><td><b>${esc(r.title||'Untitled')}</b><br><small>${esc(r.id)}</small></td><td>${esc(r.artistName||'—')}</td><td><span class="status ${esc(r.status)}">${esc(r.status)}</span></td><td>${esc(r.releaseDate||'—')}</td><td>${esc((r.destinations||[]).join(', ')||'—')}</td></tr>`).join('')}</tbody></table></div>`
+}
+function render(){
+  if(!overview)return;
+  const c=$('#content'), o=overview;
+  if(tab==='overview') c.innerHTML=`<div class="grid">${metric(o.counts.total,'TOTAL RELEASES')}${metric(o.counts.inReview,'IN REVIEW')}${metric(o.counts.approved,'APPROVED')}${metric(o.counts.needsChanges,'NEEDS CHANGES')}</div><h2 class="sectionTitle">Latest releases</h2>${releaseTable((o.releases||[]).slice(0,8))}`;
+  if(tab==='releases') c.innerHTML=`<h2 class="sectionTitle">Release Review Queue</h2>${releaseTable(o.releases||[])}`;
+  if(tab==='royalties'){
+    const cards=[];for(const [cur,buckets] of Object.entries(o.royalties||{}))for(const [bucket,amount] of Object.entries(buckets))cards.push(metric(amount,`${cur} • ${bucket} • MINOR UNITS`));
+    c.innerHTML=`<h2 class="sectionTitle">Royalty Ledger</h2><div class="grid">${cards.join('')||'<div class="card empty">No royalty entries yet.</div>'}</div><h2 class="sectionTitle">Payout</h2><div class="card"><b>Payout engine disabled.</b><p class="muted">KYC, tax, threshold and payment rails remain gated.</p></div>`
+  }
+  if(tab==='audit') c.innerHTML=`<h2 class="sectionTitle">Audit Log</h2>${(o.audit||[]).length?`<div class="tableWrap"><table><thead><tr><th>TIME</th><th>ACTION</th><th>ENTITY</th><th>STATE</th><th>ACTOR</th></tr></thead><tbody>${o.audit.map(a=>`<tr><td>${esc(new Date(a.created_at).toLocaleString())}</td><td><b>${esc(a.action)}</b></td><td>${esc(a.entity_id)}</td><td>${esc(a.prior_state||'—')} → ${esc(a.next_state||'—')}</td><td>${esc(a.actor_id)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="card empty">No audit events.</div>'}`;
+  if(tab==='provider'){
+    const waiting=(o.releases||[]).filter(r=>r.status==='APPROVED');
+    c.innerHTML=`<div class="grid">${metric((o.providers||[]).find(p=>p.enabled)?.display_name||'NONE','ACTIVE PROVIDER')}${metric('DISABLED','MODE')}${metric(waiting.length,'APPROVED / WAITING')}${metric((o.deliveries||[]).length,'DELIVERY RECORDS')}</div><h2 class="sectionTitle">Readiness</h2><div class="card provider"><div><b>Provider adapter: <span class="off">DISABLED</span></b><p class="muted">No provider account or DSP credential is enabled. Internal approval never implies DSP delivery.</p></div><span class="status RIGHTS_HOLD">NO DSP DELIVERY</span></div><h2 class="sectionTitle">Waiting provider</h2>${releaseTable(waiting)}`
+  }
+}
+async function openRelease(id){
+  $('#releaseOverlay').classList.add('open');$('#releaseDialog').innerHTML='<div class="empty">Loading release…</div>';
+  try{
+    const d=await request('/admin/releases/'+encodeURIComponent(id));const r=d.release,a=d.assets||[];
+    const art=a.find(x=>x.kind==='ARTWORK'), audio=a.find(x=>x.kind==='AUDIO_MASTER');
+    const decision=r.status==='IN_REVIEW'?`<div class="actions"><button class="btn approve" onclick="decision('${esc(id)}','APPROVE')">APPROVE</button><button class="btn changes" onclick="decision('${esc(id)}','NEEDS_CHANGES')">NEEDS CHANGES</button><button class="btn hold" onclick="decision('${esc(id)}','RIGHTS_HOLD')">RIGHTS HOLD</button></div>`:'<p class="muted">No admin decision available in this state.</p>';
+    $('#releaseDialog').innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px"><div><h2>${esc(r.title||'Untitled')}</h2><p class="muted">${esc(r.artistName||'—')} • ${esc(r.id)}</p></div><button class="btn secondary" onclick="closeRelease()">CLOSE</button></div><span class="status ${esc(r.status)}">${esc(r.status)}</span><h3>Metadata</h3><div class="detailGrid"><div><span>LABEL</span>${esc(r.labelName||'—')}</div><div><span>GENRE</span>${esc(r.genre||'—')}</div><div><span>RELEASE DATE</span>${esc(r.releaseDate||'—')}</div><div><span>REVISION</span>${esc(r.revision||1)}</div><div><span>SONGWRITER</span>${esc(r.songwriter||'—')}</div><div><span>COMPOSER</span>${esc(r.composer||'—')}</div><div><span>COPYRIGHT</span>${esc(r.copyrightOwner||'—')}</div><div><span>DESTINATIONS</span>${esc((r.destinations||[]).join(', ')||'—')}</div></div><h3>Media QC</h3><div class="media"><div class="card"><b>Artwork</b>${art?.signedUrl?`<img class="art" src="${esc(art.signedUrl)}">`:'<div class="empty">No artwork</div>'}<small>${esc(art?.file_name||'—')} • ${esc(art?.status||'—')} • ${esc(art?`${art.width}×${art.height}`:'')}</small></div><div class="card"><b>Audio master</b>${audio?.signedUrl?`<audio controls preload="none" src="${esc(audio.signedUrl)}"></audio>`:'<div class="empty">No audio</div>'}<small>${esc(audio?.file_name||'—')} • ${esc(audio?.status||'—')} • ${esc(audio?.duration_ms||0)} ms</small></div></div><h3>Admin decision</h3>${decision}`;
+  }catch(e){$('#releaseDialog').innerHTML=`<div class="empty">${esc(e.message||e)}</div>`}
+}
+async function decision(id,action){
+  const note=action==='APPROVE'?'':prompt('Admin note (optional)')||'';
+  try{await request(`/admin/releases/${encodeURIComponent(id)}/decision`,{method:'POST',body:{action,note}});showToast(action+' saved');closeRelease();await refresh()}catch(e){showToast(e.message||String(e))}
+}
+(async()=>{if(!api()||!token()){openSetup();$('#content').innerHTML='<div class="card empty">Configure the Cloudflare API to continue.</div>';return}try{await refresh()}catch(e){openSetup();$('#setupState').textContent=e.message||String(e)}})();
+</script>
+</body>
+</html>

@@ -707,10 +707,25 @@ async function handleApi(request, env, url) {
   return apiError(404, 'NOT_FOUND', 'Route not found');
 }
 
+async function serveApp(request, env) {
+  if (!env.ASSETS) return apiError(503, 'WEB_ASSETS_MISSING', 'Web static assets are not bound');
+  const assetUrl = new URL(request.url);
+  assetUrl.pathname = '/index.html';
+  assetUrl.search = '';
+  const response = await env.ASSETS.fetch(new Request(assetUrl, request));
+  const headers = new Headers(response.headers);
+  headers.set('cache-control', 'no-cache');
+  headers.set('x-frame-options', 'DENY');
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('referrer-policy', 'no-referrer');
+  headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+  return new Response(response.body, { status: response.status, headers });
+}
+
 async function serveAdmin(request, env) {
   if (!env.ASSETS) return apiError(503, 'ADMIN_ASSETS_MISSING', 'Admin static assets are not bound');
   const assetUrl = new URL(request.url);
-  assetUrl.pathname = '/index.html';
+  assetUrl.pathname = '/admin/index.html';
   assetUrl.search = '';
   const response = await env.ASSETS.fetch(new Request(assetUrl, request));
   const headers = new Headers(response.headers);
@@ -734,7 +749,8 @@ export default {
         await ensureSchema(env);
         return handleApi(request, env, url);
       }
-      if (url.pathname === '/' || url.pathname === '/admin' || url.pathname.startsWith('/admin/')) return serveAdmin(request, env);
+      if (url.pathname === '/' || url.pathname === '/app' || url.pathname.startsWith('/app/')) return serveApp(request, env);
+      if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) return serveAdmin(request, env);
       if (env.ASSETS) {
         const asset = await env.ASSETS.fetch(request);
         if (asset.status !== 404) return asset;
