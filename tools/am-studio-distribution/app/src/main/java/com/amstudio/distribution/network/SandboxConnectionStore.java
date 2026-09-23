@@ -6,7 +6,8 @@ import android.content.SharedPreferences;
 public final class SandboxConnectionStore {
     private static final String PREFS = "am_studio_sandbox_connection";
     private static final String KEY_BASE_URL = "base_url";
-    private static final String DEFAULT_BASE_URL = "https://am-studio.hatchable.site/api";
+    private static final String LEGACY_BASE_URL = "https://am-studio.hatchable.site/api";
+    private static final String DEFAULT_BASE_URL = "https://distribution.nadmo.id/api";
 
     private final SharedPreferences preferences;
     private volatile String sessionToken = "";
@@ -17,7 +18,14 @@ public final class SandboxConnectionStore {
 
     public String getBaseUrl() {
         String saved = preferences.getString(KEY_BASE_URL, "");
-        return saved == null || saved.trim().isEmpty() ? DEFAULT_BASE_URL : saved.trim();
+        String normalized = saved == null ? "" : saved.trim();
+        if (normalized.isEmpty() || LEGACY_BASE_URL.equalsIgnoreCase(normalized)) {
+            if (!normalized.isEmpty()) {
+                preferences.edit().putString(KEY_BASE_URL, DEFAULT_BASE_URL).apply();
+            }
+            return DEFAULT_BASE_URL;
+        }
+        return normalized;
     }
 
     public void setBaseUrl(String value) {

@@ -57,14 +57,14 @@ jobs:
           SRC='tools/am-studio-distribution/app/build/outputs/apk/debug/app-debug.apk'
           test -f "$SRC"
           mkdir -p dist
-          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.8.0-sandbox-e2e-DEBUG.apk'
-          sha256sum 'dist/AM-STUDIO-Distribution-v0.8.0-sandbox-e2e-DEBUG.apk' | tee 'dist/SHA256SUMS.txt'
+          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.9.0-cloudflare-e2e-DEBUG.apk'
+          sha256sum 'dist/AM-STUDIO-Distribution-v0.9.0-cloudflare-e2e-DEBUG.apk' | tee 'dist/SHA256SUMS.txt'
           printf '%s\n' 'DEBUG BUILD — NOT UPGRADE-SAFE / NOT FOR USER DISTRIBUTION' > 'dist/BUILD_CHANNEL.txt'
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AM-STUDIO-Distribution-v0.8.0-debug-ci
+          name: AM-STUDIO-Distribution-v0.9.0-debug-ci
           path: dist/*
           if-no-files-found: error
 
@@ -120,14 +120,14 @@ jobs:
           SRC='tools/am-studio-distribution/app/build/outputs/apk/release/app-release.apk'
           test -f "$SRC"
           mkdir -p dist
-          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.8.0-sandbox-e2e-SIGNED.apk'
-          sha256sum 'dist/AM-STUDIO-Distribution-v0.8.0-sandbox-e2e-SIGNED.apk' | tee 'dist/SHA256SUMS.txt'
-          keytool -printcert -jarfile 'dist/AM-STUDIO-Distribution-v0.8.0-sandbox-e2e-SIGNED.apk' > 'dist/SIGNING_CERT.txt'
-          printf '%s\n' 'PERMANENT AM STUDIO SIGNED RELEASE — SANDBOX E2E CHANNEL' > 'dist/BUILD_CHANNEL.txt'
+          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.9.0-cloudflare-e2e-SIGNED.apk'
+          sha256sum 'dist/AM-STUDIO-Distribution-v0.9.0-cloudflare-e2e-SIGNED.apk' | tee 'dist/SHA256SUMS.txt'
+          keytool -printcert -jarfile 'dist/AM-STUDIO-Distribution-v0.9.0-cloudflare-e2e-SIGNED.apk' > 'dist/SIGNING_CERT.txt'
+          printf '%s\n' 'PERMANENT AM STUDIO SIGNED RELEASE — CLOUDFLARE SANDBOX E2E CHANNEL' > 'dist/BUILD_CHANNEL.txt'
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: AM-STUDIO-Distribution-v0.8.0-signed-release
+          name: AM-STUDIO-Distribution-v0.9.0-signed-release
           path: dist/*
           if-no-files-found: error
