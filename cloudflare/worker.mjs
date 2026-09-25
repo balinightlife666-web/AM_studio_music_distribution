@@ -75,6 +75,12 @@ const SCHEMA_STATEMENTS = [
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS am_asset_blobs (
+    asset_id TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    bytes BLOB NOT NULL,
+    PRIMARY KEY (asset_id, chunk_index)
+  )`,
   `CREATE TABLE IF NOT EXISTS am_audit_events (
     id TEXT PRIMARY KEY,
     actor_id TEXT NOT NULL,
@@ -125,6 +131,7 @@ const SCHEMA_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS am_sessions_expires_idx ON am_sessions(expires_at)',
   'CREATE INDEX IF NOT EXISTS am_releases_owner_updated_idx ON am_releases(owner_id, updated_at DESC)',
   'CREATE INDEX IF NOT EXISTS am_assets_owner_created_idx ON am_assets(owner_id, created_at DESC)',
+  'CREATE INDEX IF NOT EXISTS am_asset_blobs_asset_idx ON am_asset_blobs(asset_id, chunk_index)',
   'CREATE INDEX IF NOT EXISTS am_audit_entity_created_idx ON am_audit_events(entity_id, created_at DESC)',
   'CREATE INDEX IF NOT EXISTS am_royalty_owner_created_idx ON am_royalty_ledger(owner_id, created_at ASC)',
   'CREATE INDEX IF NOT EXISTS am_provider_delivery_release_idx ON am_provider_deliveries(release_id, created_at DESC)',
@@ -273,9 +280,8 @@ async function handleHealth(env) {
   try {
     await env.DB.prepare('SELECT 1 AS ok').first();
     database = true;
-  } catch {}
-  try {
-    storage = Boolean(env.ASSETS_BUCKET);
+    await env.DB.prepare('SELECT COUNT(*) AS count FROM am_asset_blobs').first();
+    storage = true;
   } catch {}
   return json({
     ok: database && storage,
@@ -283,7 +289,7 @@ async function handleHealth(env) {
     environment: 'DEV_SANDBOX',
     host: 'CLOUDFLARE',
     database: database ? 'D1' : 'UNAVAILABLE',
-    objectStorage: storage ? 'R2' : 'UNAVAILABLE',
+    objectStorage: storage ? 'D1_BLOB_CHUNKS' : 'UNAVAILABLE',
     distributionProvider: 'disabled',
     dspDeliveryEnabled: false,
     payoutEnabled: false,
@@ -440,7 +446,7 @@ async function handleCreateUpload(request, env) {
     status: 'PENDING_UPLOAD',
     upload: {
       method: 'PUT',
-      mode: 'CLOUDFLARE_R2_VIA_API',
+      mode: 'CLOUDFLARE_D1_CHUNK_STORAGE',
       target: `/v1/uploads/${id}/content`,
       expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
     },
@@ -469,10 +475,22 @@ async function handleUploadContent(request, env, id) {
     return apiError(409, 'UPLOAD_INTEGRITY_MISMATCH', 'Uploaded bytes do not match declared size/checksum');
   }
 
-  await env.ASSETS_BUCKET.put(asset.storage_key, bytes, {
-    httpMetadata: { contentType: asset.mime || 'application/octet-stream' },
-    customMetadata: { assetId: id, ownerId: user.id, kind: asset.kind },
-  });
+  await env.DB.prepare('DELETE FROM am_asset_blobs WHERE asset_id = ?').bind(id).run();
+  const view = new Uint8Array(bytes);
+  const chunkSize = 256 * 1024;
+  let pending = [];
+  for (let offset = 0, chunkIndex = 0; offset < view.byteLength; offset += chunkSize, chunkIndex++) {
+    const chunk = view.slice(offset, Math.min(offset + chunkSize, view.byteLength));
+    pending.push(
+      env.DB.prepare('INSERT INTO am_asset_blobs (asset_id, chunk_index, bytes) VALUES (?, ?, ?)')
+        .bind(id, chunkIndex, chunk)
+    );
+    if (pending.length === 20) {
+      await env.DB.batch(pending);
+      pending = [];
+    }
+  }
+  if (pending.length) await env.DB.batch(pending);
   await env.DB.prepare('UPDATE am_assets SET status = ?, verified_checksum = ?, updated_at = ? WHERE id = ? AND owner_id = ?')
     .bind('UPLOADED', verifiedChecksum, now(), id, user.id).run();
   await audit(env, user.id, 'UPLOAD_BYTES_VERIFIED', id, 'PENDING_UPLOAD', 'UPLOADED');
@@ -643,15 +661,15 @@ async function handleAdminMedia(request, env, id) {
   if (!(await requireAdmin(request, env))) return apiError(401, 'ADMIN_UNAUTHORIZED', 'Valid admin token required');
   const asset = await env.DB.prepare('SELECT id, storage_key, mime, file_name, status FROM am_assets WHERE id = ? LIMIT 1').bind(id).first();
   if (!asset || !asset.storage_key) return apiError(404, 'ASSET_NOT_FOUND', 'Asset not found');
-  const object = await env.ASSETS_BUCKET.get(asset.storage_key);
-  if (!object) return apiError(404, 'ASSET_BYTES_NOT_FOUND', 'Asset bytes not found');
+  const chunks = await env.DB.prepare('SELECT chunk_index, bytes FROM am_asset_blobs WHERE asset_id = ? ORDER BY chunk_index ASC').bind(id).all();
+  if (!chunks.results || !chunks.results.length) return apiError(404, 'ASSET_BYTES_NOT_FOUND', 'Asset bytes not found');
+  const parts = chunks.results.map(row => row.bytes instanceof ArrayBuffer ? new Uint8Array(row.bytes) : row.bytes);
   const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('content-type', asset.mime || headers.get('content-type') || 'application/octet-stream');
+  headers.set('content-type', asset.mime || 'application/octet-stream');
   headers.set('content-disposition', `inline; filename="${String(asset.file_name || 'asset').replace(/["\r\n]/g, '')}"`);
   headers.set('cache-control', 'private, no-store');
   headers.set('x-content-type-options', 'nosniff');
-  return new Response(object.body, { status: 200, headers });
+  return new Response(new Blob(parts, { type: asset.mime || 'application/octet-stream' }), { status: 200, headers });
 }
 
 async function handleAdminDecision(request, env, id) {

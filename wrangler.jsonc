@@ -16,11 +16,5 @@
       "binding": "DB",
       "migrations_dir": "cloudflare/migrations"
     }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "ASSETS_BUCKET",
-      "bucket_name": "am-studio-distribution-assets"
-    }
   ]
 }
