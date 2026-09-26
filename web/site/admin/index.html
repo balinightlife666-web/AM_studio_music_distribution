@@ -25,7 +25,7 @@
     <p class="muted">API URL is stored on this device. Admin token lives only in this browser session.</p>
     <input class="field" id="apiBase" placeholder="/api">
     <input class="field" id="adminToken" type="password" placeholder="Admin token">
-    <div class="actions"><button class="btn primary" onclick="saveSetup()">SAVE & CONNECT</button><button class="btn secondary" onclick="closeSetup()">CANCEL</button></div>
+    <div class="actions"><button class="btn primary" onclick="saveSetup()">SAVE & CONNECT</button><button class="btn approve" onclick="bootstrapAdmin()">INITIALIZE ADMIN</button><button class="btn secondary" onclick="closeSetup()">CANCEL</button></div>
     <p id="setupState" class="muted"></p>
   </div>
 </div>
@@ -49,11 +49,29 @@ function openSetup(){ $('#apiBase').value=api(); $('#adminToken').value=token();
 function closeSetup(){ $('#setupOverlay').classList.remove('open') }
 function closeRelease(){ $('#releaseOverlay').classList.remove('open') }
 function normalizeBase(v){return String(v||'').trim().replace(/\/+$/,'')}
+function validBase(v){return v==='/api'||/^https:\/\//.test(v)}
 async function saveSetup(){
-  const base=normalizeBase($('#apiBase').value), t=$('#adminToken').value.trim();
-  if(!/^https:\/\//.test(base)||!t){$('#setupState').textContent='HTTPS API URL + admin token required.';return}
+  const base=normalizeBase($('#apiBase').value)||'/api', t=$('#adminToken').value.trim();
+  if(!validBase(base)||!t){$('#setupState').textContent='Use /api (recommended) or an HTTPS API URL, plus your admin token.';return}
   localStorage.setItem('am_api_base',base); sessionStorage.setItem('am_admin_token',t); $('#setupState').textContent='Testing…';
   try{await refresh();closeSetup()}catch(e){$('#setupState').textContent=e.message||String(e)}
+}
+async function bootstrapAdmin(){
+  const base=normalizeBase($('#apiBase').value)||'/api';
+  if(!validBase(base)){ $('#setupState').textContent='Use /api (recommended) or an HTTPS API URL.'; return; }
+  localStorage.setItem('am_api_base',base);
+  $('#setupState').textContent='Initializing one-time admin access…';
+  try{
+    const r=await fetch(base+'/admin/bootstrap',{method:'POST',headers:{'x-am-admin-bootstrap':'browser','accept':'application/json'}});
+    let body={};try{body=await r.json()}catch{}
+    if(!r.ok)throw new Error(body?.error?.message||body?.error?.code||('HTTP '+r.status));
+    sessionStorage.setItem('am_admin_token',body.token);
+    $('#adminToken').value=body.token;
+    $('#setupState').textContent='Admin initialized. Connecting…';
+    await refresh();
+    closeSetup();
+    showToast('Admin initialized for this browser session');
+  }catch(e){$('#setupState').textContent=e.message||String(e)}
 }
 async function request(path,opts={}){
   const base=api();if(!base)throw new Error('API not configured');
@@ -103,7 +121,21 @@ async function decision(id,action){
   const note=action==='APPROVE'?'':prompt('Admin note (optional)')||'';
   try{await request(`/admin/releases/${encodeURIComponent(id)}/decision`,{method:'POST',body:{action,note}});showToast(action+' saved');closeRelease();await refresh()}catch(e){showToast(e.message||String(e))}
 }
-(async()=>{if(!api()||!token()){openSetup();$('#content').innerHTML='<div class="card empty">Configure the Cloudflare API to continue.</div>';return}try{await refresh()}catch(e){openSetup();$('#setupState').textContent=e.message||String(e)}})();
+(async()=>{
+  if(!token()){
+    openSetup();
+    $('#apiBase').value=api();
+    $('#content').innerHTML='<div class="card empty">Connect or initialize AM STUDIO admin access.</div>';
+    try{
+      const h=await fetch(api()+'/health').then(r=>r.json());
+      $('#setupState').textContent=h?.adminConfigured
+        ? 'Admin is already initialized. Enter the admin token for this session.'
+        : 'Admin is not initialized yet. Click INITIALIZE ADMIN once.';
+    }catch{}
+    return;
+  }
+  try{await refresh()}catch(e){openSetup();$('#setupState').textContent=e.message||String(e)}
+})();
 </script>
 </body>
 </html>
