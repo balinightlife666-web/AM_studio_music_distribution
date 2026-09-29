@@ -17,6 +17,11 @@
   </div>
   <div class="nav" id="nav"></div>
   <main id="content"><div class="card empty">Connecting…</div></main>
+  <footer style="margin-top:28px;padding:18px 4px 8px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.7">
+    <b style="color:var(--text)">PT NADMO STUDIO INDONESIA</b><br>
+    Perseroan Perorangan (Usaha Mikro) • NIB 2809260089771 • AHU-A126270.AH.01.30.Tahun 2026<br>
+    Kota Denpasar, Bali, Indonesia • KBLI 62191
+  </footer>
 </div>
 
 <div class="overlay" id="setupOverlay">
@@ -36,7 +41,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const TABS=['overview','releases','royalties','audit','provider'];
+const TABS=['overview','releases','royalties','audit','provider','legal'];
 let tab='overview';
 let overview=null;
 const $=s=>document.querySelector(s);
@@ -85,6 +90,7 @@ function render(){
     c.innerHTML=`<h2 class="sectionTitle">Royalty Ledger</h2><div class="grid">${cards.join('')||'<div class="card empty">No royalty entries yet.</div>'}</div><h2 class="sectionTitle">Payout</h2><div class="card"><b>Payout engine disabled.</b><p class="muted">KYC, tax, threshold and payment rails remain gated.</p></div>`
   }
   if(tab==='audit') c.innerHTML=`<h2 class="sectionTitle">Audit Log</h2>${(o.audit||[]).length?`<div class="tableWrap"><table><thead><tr><th>TIME</th><th>ACTION</th><th>ENTITY</th><th>STATE</th><th>ACTOR</th></tr></thead><tbody>${o.audit.map(a=>`<tr><td>${esc(new Date(a.created_at).toLocaleString())}</td><td><b>${esc(a.action)}</b></td><td>${esc(a.entity_id)}</td><td>${esc(a.prior_state||'—')} → ${esc(a.next_state||'—')}</td><td>${esc(a.actor_id)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="card empty">No audit events.</div>'}`;
+  if(tab==='legal') c.innerHTML=`<h2 class="sectionTitle">Legalitas Perusahaan</h2><div class="card"><div class="detailGrid"><div><span>NAMA BADAN USAHA</span><b>PT NADMO STUDIO INDONESIA</b></div><div><span>BENTUK BADAN HUKUM</span>Perseroan Perorangan (Usaha Mikro)</div><div><span>NIB</span>2809260089771</div><div><span>AHU</span>AHU-A126270.AH.01.30.Tahun 2026</div><div><span>TANGGAL TERDAFTAR</span>28 September 2026</div><div><span>DOMISILI</span>Kota Denpasar, Bali, Indonesia</div><div><span>KBLI</span>62191</div><div><span>KEGIATAN USAHA</span>Aktivitas Pengembangan Aplikasi Perdagangan melalui Internet (E-Commerce)</div><div><span>STATUS PENANAMAN MODAL</span>PMDN</div><div><span>SKALA USAHA</span>Usaha Mikro</div><div><span>EMAIL</span>nadmostudio@gmail.com</div></div><p class="muted" style="margin:14px 0 0">NPWP dan dokumen identitas tidak ditampilkan pada halaman publik.</p></div>`;
   if(tab==='provider'){
     const waiting=(o.releases||[]).filter(r=>r.status==='APPROVED');
     c.innerHTML=`<div class="grid">${metric((o.providers||[]).find(p=>p.enabled)?.display_name||'NONE','ACTIVE PROVIDER')}${metric('DISABLED','MODE')}${metric(waiting.length,'APPROVED / WAITING')}${metric((o.deliveries||[]).length,'DELIVERY RECORDS')}</div><h2 class="sectionTitle">Readiness</h2><div class="card provider"><div><b>Provider adapter: <span class="off">DISABLED</span></b><p class="muted">No provider account or DSP credential is enabled. Internal approval never implies DSP delivery.</p></div><span class="status RIGHTS_HOLD">NO DSP DELIVERY</span></div><h2 class="sectionTitle">Waiting provider</h2>${releaseTable(waiting)}`
