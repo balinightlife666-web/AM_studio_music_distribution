@@ -16,5 +16,11 @@
       "binding": "DB",
       "database_id": "6f71c86d-61f3-4bb8-86da-da68d16201da"
     }
+  ],
+  "routes": [
+    {
+      "pattern": "distribution.nadmo.id",
+      "custom_domain": true
+    }
   ]
 }
