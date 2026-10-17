@@ -205,5 +205,9 @@ function bindFileInfo(){
 $('#destinations').innerHTML=STORES.map((s,i)=>`<label class="check"><input type="checkbox" name="store" value="${esc(s)}" ${i<4?'checked':''}> ${esc(s)}</label>`).join('');
 bindFileInfo();refreshAll();
 </script>
+
+<!-- NADMO Discord customer support -->
+<style>#nadmo-discord-cs{box-sizing:border-box;position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:9000;padding:12px 16px;border-radius:999px;background:#5865f2;color:#fff!important;font:700 13px system-ui,sans-serif;text-decoration:none!important;box-shadow:0 5px 20px #0004}#nadmo-discord-cs:focus-visible{outline:3px solid #fff;outline-offset:3px}</style>
+<a id="nadmo-discord-cs" href="https://discord.gg/kUB5FKu3AK" target="_blank" rel="noopener noreferrer" aria-label="Customer Service via Discord">CS Discord</a>
 </body>
 </html>
