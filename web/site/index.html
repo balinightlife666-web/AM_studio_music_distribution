@@ -13,7 +13,7 @@ button,input,select{font:inherit}.shell{max-width:1120px;margin:auto;padding:18p
 .btn{border:0;border-radius:12px;padding:12px 15px;font-weight:900;cursor:pointer}.primary{background:var(--blue);color:white}.secondary{background:#1a2230;color:white;border:1px solid var(--line)}.danger{background:#4f2028;color:#ffdfe3}.btn:disabled{opacity:.5;cursor:not-allowed}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.card{background:rgba(17,22,31,.95);border:1px solid var(--line);border-radius:16px;padding:16px}.metric b{display:block;font-size:28px}.metric span{font-size:9px;color:var(--muted);font-weight:900}.section{margin-top:26px}.section h3{margin:0 0 12px;font-size:18px}.release{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.release+.release{margin-top:9px}.release b{font-size:15px}.release small{display:block;color:var(--muted);margin-top:3px}.status{display:inline-block;padding:5px 8px;border-radius:99px;background:#202837;font-size:9px;font-weight:900}.IN_REVIEW{color:var(--yellow)}.APPROVED,.READY_FOR_REVIEW{color:var(--green)}.NEEDS_CHANGES,.RIGHTS_HOLD{color:var(--red)}
 .page{display:none}.page.active{display:block}.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;width:min(740px,calc(100% - 24px));display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:rgba(12,16,23,.92);backdrop-filter:blur(18px);border:1px solid var(--line);padding:7px;border-radius:18px;z-index:20}.nav button{background:transparent;color:var(--muted);border:0;border-radius:12px;padding:10px 6px;font-size:9px;font-weight:1000}.nav button.active{background:#182233;color:white}
-.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fieldWrap{display:flex;flex-direction:column;gap:6px}.fieldWrap.full{grid-column:1/-1}.fieldWrap label{font-size:9px;color:var(--muted);font-weight:900;letter-spacing:.08em}.field{width:100%;background:#131a24;color:white;border:1px solid var(--line);border-radius:11px;padding:12px;outline:none}.field:focus{border-color:#356da6}.checkGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.check{display:flex;align-items:center;gap:8px;background:#121923;border:1px solid var(--line);padding:10px;border-radius:10px}.upload{border:1px dashed #38506a;background:#0e141d;border-radius:14px;padding:14px}.upload input{width:100%;color:var(--muted)}.hint{color:var(--muted);font-size:11px}.state{margin-top:12px;padding:12px;border-radius:12px;background:#101722;border:1px solid var(--line);color:var(--muted);white-space:pre-wrap}.state.good{color:var(--green)}.state.bad{color:var(--yellow)}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fieldWrap{display:flex;flex-direction:column;gap:6px}.fieldWrap.full{grid-column:1/-1}.fieldWrap label{font-size:9px;color:var(--muted);font-weight:900;letter-spacing:.08em}.field{width:100%;background:#131a24;color:white;border:1px solid var(--line);border-radius:11px;padding:12px;outline:none}.field:focus{border-color:#356da6}.checkGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.check{display:flex;align-items:center;gap:8px;background:#121923;border:1px solid var(--line);padding:10px;border-radius:10px}.upload{border:1px dashed #38506a;background:#0e141d;border-radius:14px;padding:14px}.upload input{width:100%;color:var(--muted)}.hint{color:var(--muted);font-size:11px}.state{margin-top:12px;padding:12px;border-radius:12px;background:#101722;border:1px solid var(--line);color:var(--muted);white-space:pre-wrap}.state.good{color:var(--green)}.state.bad{color:var(--yellow)}.trackEditor{margin-top:10px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#0d141e}.trackHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.trackHead b{font-size:12px}.miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.miniGrid .full{grid-column:1/-1}@media(max-width:620px){.miniGrid{grid-template-columns:1fr}.miniGrid .full{grid-column:auto}}
 .wallet{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.money{font-size:24px;font-weight:900}.empty{padding:28px;text-align:center;color:var(--muted)}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;word-break:break-all}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill{padding:6px 9px;border-radius:99px;background:#18202c;color:var(--muted);font-size:9px;font-weight:900}
 .toast{position:fixed;right:16px;top:16px;z-index:50;background:#151d28;border:1px solid var(--line);padding:12px 14px;border-radius:12px;display:none}.toast.show{display:block}
 @media(max-width:760px){.shell{padding:13px 13px 90px}.top{align-items:flex-start}.brand h1{font-size:16px}.badge{font-size:8px}.hero{padding:20px}h2{font-size:27px}.grid,.wallet{grid-template-columns:1fr 1fr}.formGrid{grid-template-columns:1fr}.fieldWrap.full{grid-column:auto}.checkGrid{grid-template-columns:1fr}.nav button{font-size:8px}.logo{width:44px;height:44px}}
@@ -49,16 +49,27 @@ button,input,select{font:inherit}.shell{max-width:1120px;margin:auto;padding:18p
     <p class="lead">Files are hashed in your browser, uploaded directly to AM STUDIO Cloudflare storage, then verified by the backend before review.</p>
     <div class="card">
       <div class="formGrid">
-        <div class="fieldWrap full"><label>MASTER AUDIO • WAV / FLAC</label><div class="upload"><input id="audioFile" type="file" accept=".wav,.flac,audio/wav,audio/flac"><div id="audioMeta" class="hint">No master selected.</div></div></div>
+        <div class="fieldWrap full"><label>TRACK 1 MASTER • WAV / FLAC</label><div class="upload"><input id="audioFile" type="file" accept=".wav,.flac,audio/wav,audio/flac"><div id="audioMeta" class="hint">No master selected.</div></div></div>
         <div class="fieldWrap full"><label>COVER ARTWORK • JPG / PNG • SQUARE ≥ 3000PX</label><div class="upload"><input id="artFile" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png"><div id="artMeta" class="hint">No artwork selected.</div></div></div>
-        <div class="fieldWrap"><label>RELEASE / TRACK TITLE</label><input id="title" class="field" placeholder="Title"></div>
+        <div class="fieldWrap"><label>RELEASE TITLE</label><input id="title" class="field" placeholder="Release title"></div>
+        <div class="fieldWrap"><label>RELEASE TYPE</label><select id="releaseType" class="field"><option value="SINGLE">Single</option><option value="EP">EP</option><option value="ALBUM">Album</option></select></div>
         <div class="fieldWrap"><label>PRIMARY ARTIST</label><input id="artist" class="field" placeholder="Artist"></div>
+        <div class="fieldWrap"><label>RELEASE VERSION</label><input id="versionTitle" class="field" placeholder="Original, Remix, Live…"></div>
         <div class="fieldWrap"><label>LABEL</label><input id="label" class="field" value="AM STUDIO"></div>
         <div class="fieldWrap"><label>GENRE</label><input id="genre" class="field" placeholder="Genre"></div>
         <div class="fieldWrap"><label>RELEASE DATE</label><input id="releaseDate" class="field" type="date"></div>
-        <div class="fieldWrap"><label>SONGWRITER</label><input id="songwriter" class="field" placeholder="Songwriter / lyricist"></div>
+        <div class="fieldWrap"><label>LANGUAGE</label><input id="language" class="field" placeholder="id, en, ja…"></div>
+        <div class="fieldWrap"><label>UPC / EAN / GTIN</label><input id="upc" class="field" inputmode="numeric" placeholder="Optional until officially assigned"></div>
+        <div class="fieldWrap"><label>CATALOG NUMBER</label><input id="catalogNumber" class="field" placeholder="Optional label catalog no."></div>
+        <div class="fieldWrap full"><label>TERRITORIES</label><input id="territories" class="field" value="WORLDWIDE" placeholder="WORLDWIDE or comma-separated country codes"></div>
+        <div class="fieldWrap"><label>TRACK 1 TITLE</label><input id="track1Title" class="field" placeholder="Leave blank to use release title"></div>
+        <div class="fieldWrap"><label>TRACK 1 ISRC</label><input id="isrc" class="field" placeholder="Optional official ISRC"></div>
+        <div class="fieldWrap"><label>SONGWRITER / LYRICIST</label><input id="songwriter" class="field" placeholder="Songwriter / lyricist"></div>
         <div class="fieldWrap"><label>COMPOSER</label><input id="composer" class="field" placeholder="Composer"></div>
         <div class="fieldWrap"><label>COPYRIGHT / MASTER OWNER</label><input id="copyrightOwner" class="field" placeholder="Copyright owner"></div>
+        <div class="fieldWrap"><label>℗ LINE</label><input id="pLine" class="field" placeholder="℗ 2026 Owner"></div>
+        <div class="fieldWrap full"><label>© LINE</label><input id="cLine" class="field" placeholder="© 2026 Owner"></div>
+        <div class="fieldWrap full"><label>ADDITIONAL TRACKS • EP / ALBUM</label><div id="trackRows"></div><button type="button" class="btn secondary" onclick="addTrackRow()">+ ADD TRACK</button><p class="hint">Each extra track gets its own WAV/FLAC, title, contributors and optional ISRC.</p></div>
         <div class="fieldWrap full"><label>DISTRIBUTION DESTINATIONS</label><div id="destinations" class="checkGrid"></div></div>
         <div class="fieldWrap full"><label>RIGHTS</label><label class="check"><input id="explicit" type="checkbox"> Explicit content</label><label class="check"><input id="rights" type="checkbox"> I own or control the rights/licenses required to distribute this release</label></div>
       </div>
@@ -147,12 +158,96 @@ async function refreshAll(){
     renderHealth();renderHome();renderReleases();renderEarnings();
   }catch(e){$('#healthBadge').textContent='ERROR';$('#healthBadge').className='badge warn';toast(e.message||String(e))}
 }
-function formPayload(audioAssetId='',artworkAssetId=''){
+let extraTrackCounter=1;
+function addTrackRow(){
+  extraTrackCounter++;
+  const n=extraTrackCounter;
+  const el=document.createElement('div');
+  el.className='trackEditor';
+  el.dataset.trackRow=String(n);
+  el.innerHTML=`<div class="trackHead"><b>TRACK ${n}</b><button type="button" class="btn secondary" onclick="removeTrackRow(this)">REMOVE</button></div>
+    <div class="miniGrid">
+      <div class="full upload"><input class="trackAudio" type="file" accept=".wav,.flac,audio/wav,audio/flac"><div class="hint trackAudioMeta">No master selected.</div></div>
+      <input class="field trackTitle" placeholder="Track title">
+      <input class="field trackArtist" placeholder="Primary artist (blank = release artist)">
+      <input class="field trackIsrc" placeholder="Official ISRC (optional)">
+      <input class="field trackVersion" placeholder="Version / remix (optional)">
+      <input class="field trackSongwriter" placeholder="Songwriter / lyricist">
+      <input class="field trackComposer" placeholder="Composer">
+      <input class="field trackCopyright" placeholder="Copyright owner (blank = release owner)">
+      <label class="check"><input class="trackExplicit" type="checkbox"> Explicit content</label>
+    </div>`;
+  $('#trackRows').appendChild(el);
+  const input=el.querySelector('.trackAudio'), meta=el.querySelector('.trackAudioMeta');
+  input.addEventListener('change',async()=>{const file=input.files[0];if(!file){meta.textContent='No master selected.';return}meta.textContent=file.name+' • '+Math.round(file.size/1024/1024*100)/100+' MB';try{const m=await audioInfo(file);meta.textContent+=' • '+Math.round(m.durationMs/1000)+' sec'}catch{}});
+  if($('#releaseType').value==='SINGLE') $('#releaseType').value='EP';
+}
+function removeTrackRow(button){
+  button.closest('.trackEditor')?.remove();
+  renumberTracks();
+}
+function renumberTracks(){
+  [...document.querySelectorAll('.trackEditor')].forEach((row,index)=>{row.querySelector('.trackHead b').textContent='TRACK '+(index+2)});
+  if(!document.querySelector('.trackEditor') && $('#releaseType').value!=='SINGLE') $('#releaseType').value='SINGLE';
+}
+function collectExtraTrackRows(){
+  return [...document.querySelectorAll('.trackEditor')].map((row,index)=>({
+    row,
+    file:row.querySelector('.trackAudio').files[0]||null,
+    title:row.querySelector('.trackTitle').value.trim(),
+    artistName:row.querySelector('.trackArtist').value.trim(),
+    isrc:row.querySelector('.trackIsrc').value.trim(),
+    versionTitle:row.querySelector('.trackVersion').value.trim(),
+    songwriter:row.querySelector('.trackSongwriter').value.trim(),
+    composer:row.querySelector('.trackComposer').value.trim(),
+    copyrightOwner:row.querySelector('.trackCopyright').value.trim(),
+    explicitContent:row.querySelector('.trackExplicit').checked,
+    trackNumber:index+2,
+    discNumber:1,
+  }));
+}
+function formPayload(audioAssetId='',artworkAssetId='',extraUploaded=[]){
+  const releaseArtist=$('#artist').value.trim(), owner=$('#copyrightOwner').value.trim();
+  const firstTrack={
+    id:'track_1',
+    title:$('#track1Title').value.trim()||$('#title').value.trim(),
+    versionTitle:$('#versionTitle').value.trim(),
+    artistName:releaseArtist,
+    featuredArtists:[],
+    songwriter:$('#songwriter').value.trim(),
+    composer:$('#composer').value.trim(),
+    copyrightOwner:owner,
+    isrc:$('#isrc').value.trim(),
+    trackNumber:1,
+    discNumber:1,
+    explicitContent:$('#explicit').checked,
+    audioAssetId,
+  };
+  const extraRows=collectExtraTrackRows();
+  const extraTracks=extraRows.map((t,index)=>({
+    id:'track_'+(index+2),
+    title:t.title,
+    versionTitle:t.versionTitle,
+    artistName:t.artistName||releaseArtist,
+    featuredArtists:[],
+    songwriter:t.songwriter,
+    composer:t.composer,
+    copyrightOwner:t.copyrightOwner||owner,
+    isrc:t.isrc,
+    trackNumber:index+2,
+    discNumber:1,
+    explicitContent:t.explicitContent,
+    audioAssetId:extraUploaded[index]?.audioAssetId||'',
+  }));
   return {
-    title:$('#title').value.trim(),artistName:$('#artist').value.trim(),labelName:$('#label').value.trim()||'AM STUDIO',
-    genre:$('#genre').value.trim(),releaseDate:$('#releaseDate').value,songwriter:$('#songwriter').value.trim(),
-    composer:$('#composer').value.trim(),copyrightOwner:$('#copyrightOwner').value.trim(),explicitContent:$('#explicit').checked,
-    rightsConfirmed:$('#rights').checked,audioAssetId,artworkAssetId,
+    title:$('#title').value.trim(),versionTitle:$('#versionTitle').value.trim(),releaseType:$('#releaseType').value,
+    artistName:releaseArtist,labelName:$('#label').value.trim()||'AM STUDIO',
+    genre:$('#genre').value.trim(),language:$('#language').value.trim(),releaseDate:$('#releaseDate').value,
+    songwriter:$('#songwriter').value.trim(),composer:$('#composer').value.trim(),copyrightOwner:owner,
+    pLine:$('#pLine').value.trim(),cLine:$('#cLine').value.trim(),upc:$('#upc').value.trim(),catalogNumber:$('#catalogNumber').value.trim(),
+    territories:$('#territories').value.split(',').map(x=>x.trim()).filter(Boolean),
+    explicitContent:$('#explicit').checked,rightsConfirmed:$('#rights').checked,
+    audioAssetId,artworkAssetId,tracks:[firstTrack,...extraTracks],
     destinations:[...document.querySelectorAll('input[name=store]:checked')].map(x=>x.value)
   };
 }
@@ -175,21 +270,35 @@ async function saveDraft(){
   try{await ensureSession();const r=await api('/v1/releases',{method:'POST',body:p});setState('Draft saved: '+r.release.id,'good');await refreshAll();toast('Draft saved')}catch(e){setState(e.message||String(e),'bad')}finally{$('#saveBtn').disabled=false}
 }
 async function submitRelease(){
-  const audio=$('#audioFile').files[0], art=$('#artFile').files[0], p=formPayload();
-  const missing=[];if(!audio)missing.push('audio');if(!art)missing.push('artwork');if(!p.title)missing.push('title');if(!p.artistName)missing.push('artist');if(!p.genre)missing.push('genre');if(!p.releaseDate)missing.push('release date');if(!p.copyrightOwner)missing.push('copyright owner');if(!p.rightsConfirmed)missing.push('rights confirmation');if(!p.destinations.length)missing.push('destination');
+  const audio=$('#audioFile').files[0], art=$('#artFile').files[0], extras=collectExtraTrackRows(), p=formPayload();
+  if(extras.length && $('#releaseType').value==='SINGLE') $('#releaseType').value='EP';
+  const missing=[];
+  if(!audio)missing.push('track 1 audio');if(!art)missing.push('artwork');if(!p.title)missing.push('release title');if(!p.artistName)missing.push('artist');if(!p.genre)missing.push('genre');if(!p.releaseDate)missing.push('release date');if(!p.copyrightOwner)missing.push('copyright owner');if(!p.rightsConfirmed)missing.push('rights confirmation');if(!p.destinations.length)missing.push('destination');
+  extras.forEach((t,i)=>{if(!t.file)missing.push('track '+(i+2)+' audio');if(!t.title)missing.push('track '+(i+2)+' title')});
   if(missing.length){setState('Missing: '+missing.join(', '),'bad');return}
   $('#submitBtn').disabled=true;$('#saveBtn').disabled=true;
   try{
     await ensureSession();
-    setState('Reading media metadata…');
-    const [ai,ii]=await Promise.all([audioInfo(audio),imageInfo(art)]);
+    setState('Reading cover metadata…');
+    const ii=await imageInfo(art);
     if(ii.width<3000||ii.height<3000||ii.width!==ii.height)throw new Error('Artwork must be square and at least 3000×3000 px');
-    setState('Hashing + uploading master audio…');
+
+    setState('Uploading track 1 master…');
+    const ai=await audioInfo(audio);
     const audioId=await uploadAsset(audio,'AUDIO_MASTER',ai);
-    setState('Hashing + uploading artwork…');
+
+    const extraUploaded=[];
+    for(let i=0;i<extras.length;i++){
+      setState('Uploading track '+(i+2)+' of '+(extras.length+1)+'…');
+      const meta=await audioInfo(extras[i].file);
+      const audioAssetId=await uploadAsset(extras[i].file,'AUDIO_MASTER',meta);
+      extraUploaded.push({audioAssetId});
+    }
+
+    setState('Uploading artwork…');
     const artId=await uploadAsset(art,'ARTWORK',ii);
-    setState('Creating canonical release…');
-    const created=await api('/v1/releases',{method:'POST',body:formPayload(audioId,artId)});const id=created.release.id;
+    setState('Creating canonical '+$('#releaseType').value+'…');
+    const created=await api('/v1/releases',{method:'POST',body:formPayload(audioId,artId,extraUploaded)});const id=created.release.id;
     setState('Running server preflight…');
     const pre=await api('/v1/releases/'+encodeURIComponent(id)+'/preflight',{method:'POST'});
     if(!pre.ok)throw new Error('Preflight blocked: '+(pre.issues||[]).map(x=>x.code).join(', '));
