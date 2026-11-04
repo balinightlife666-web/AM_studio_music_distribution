@@ -243,6 +243,7 @@ function canonicalPayload(input = {}) {
     tracks,
     destinations,
   };
+}
 
 function normalizeChecksum(value) {
   const raw = clean(value).toLowerCase();
