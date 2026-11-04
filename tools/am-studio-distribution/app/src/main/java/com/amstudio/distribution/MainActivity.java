@@ -176,7 +176,7 @@ public final class MainActivity extends Activity {
         page.addView(title("Build & submit release"));
         page.addView(body("Local preflight dijalankan lebih dulu. Saat backend sandbox terhubung, APK menghitung checksum + exact byte size lalu upload langsung ke AM STUDIO API."));
 
-        page.addView(formLabel("MASTER AUDIO"));
+        page.addView(formLabel("TRACK 1 MASTER AUDIO"));
         Button pickAudio = secondaryButton("SELECT WAV / FLAC");
         pickAudio.setOnClickListener(v -> pickDocument(REQUEST_AUDIO, "audio/*"));
         page.addView(pickAudio, buttonLp());
@@ -193,19 +193,33 @@ public final class MainActivity extends Activity {
         page.addView(artworkStateView);
 
         page.addView(formLabel("RELEASE METADATA"));
-        EditText titleInput = field("Release title / track title");
+        EditText titleInput = field("Release / track title");
         EditText artistInput = field("Primary artist");
+        EditText releaseTypeInput = field("Release type: SINGLE / EP / ALBUM");
+        releaseTypeInput.setText("SINGLE");
+        EditText versionTitleInput = field("Version: Original / Remix / Live (optional)");
         EditText labelInput = field("Label name");
         labelInput.setText("AM STUDIO");
         EditText genreInput = field("Genre");
+        EditText languageInput = field("Language code: id / en / ja (optional)");
         EditText releaseDateInput = field("Release date (YYYY-MM-DD)");
-        page.addView(titleInput); page.addView(artistInput); page.addView(labelInput); page.addView(genreInput); page.addView(releaseDateInput);
+        EditText upcInput = field("UPC / EAN / GTIN (optional until officially assigned)");
+        upcInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+        EditText catalogInput = field("Catalog number (optional)");
+        EditText isrcInput = field("Track 1 ISRC (optional official code)");
+        EditText territoriesInput = field("Territories: WORLDWIDE or comma-separated country codes");
+        territoriesInput.setText("WORLDWIDE");
+        page.addView(titleInput); page.addView(artistInput); page.addView(releaseTypeInput); page.addView(versionTitleInput);
+        page.addView(labelInput); page.addView(genreInput); page.addView(languageInput); page.addView(releaseDateInput);
+        page.addView(upcInput); page.addView(catalogInput); page.addView(isrcInput); page.addView(territoriesInput);
 
         page.addView(formLabel("CREDITS & RIGHTS"));
         EditText songwriterInput = field("Songwriter / lyricist");
         EditText composerInput = field("Composer");
         EditText copyrightInput = field("Copyright owner / master owner");
-        page.addView(songwriterInput); page.addView(composerInput); page.addView(copyrightInput);
+        EditText pLineInput = field("℗ line, e.g. ℗ 2026 Owner");
+        EditText cLineInput = field("© line, e.g. © 2026 Owner");
+        page.addView(songwriterInput); page.addView(composerInput); page.addView(copyrightInput); page.addView(pLineInput); page.addView(cLineInput);
         CheckBox explicitCheck = checkbox("Explicit content");
         CheckBox rightsCheck = checkbox("I own or control the rights/licenses required to distribute this release");
         page.addView(explicitCheck); page.addView(rightsCheck);
@@ -224,8 +238,9 @@ public final class MainActivity extends Activity {
         Button submit = primaryButton("SUBMIT TO AM STUDIO SANDBOX");
 
         preflight.setOnClickListener(v -> {
-            ReleaseDraft draft = draftFromForm(titleInput, artistInput, labelInput, genreInput, releaseDateInput,
-                    songwriterInput, composerInput, copyrightInput, explicitCheck, rightsCheck, checks);
+            ReleaseDraft draft = draftFromForm(titleInput, artistInput, releaseTypeInput, versionTitleInput, labelInput, genreInput, languageInput, releaseDateInput,
+                    upcInput, catalogInput, isrcInput, territoriesInput, songwriterInput, composerInput, copyrightInput, pLineInput, cLineInput,
+                    explicitCheck, rightsCheck, checks);
             DistributionGateway.ValidationResult result = localGateway.validateRelease(draft);
             if (result.isValid()) {
                 draft.setStatus(ReleaseStatus.READY_FOR_REVIEW);
@@ -239,8 +254,9 @@ public final class MainActivity extends Activity {
         });
 
         save.setOnClickListener(v -> {
-            ReleaseDraft draft = draftFromForm(titleInput, artistInput, labelInput, genreInput, releaseDateInput,
-                    songwriterInput, composerInput, copyrightInput, explicitCheck, rightsCheck, checks);
+            ReleaseDraft draft = draftFromForm(titleInput, artistInput, releaseTypeInput, versionTitleInput, labelInput, genreInput, languageInput, releaseDateInput,
+                    upcInput, catalogInput, isrcInput, territoriesInput, songwriterInput, composerInput, copyrightInput, pLineInput, cLineInput,
+                    explicitCheck, rightsCheck, checks);
             draft.setStatus(ReleaseStatus.DRAFT);
             releaseStore.save(draft);
             toast("Draft tersimpan");
@@ -248,8 +264,9 @@ public final class MainActivity extends Activity {
         });
 
         submit.setOnClickListener(v -> {
-            ReleaseDraft draft = draftFromForm(titleInput, artistInput, labelInput, genreInput, releaseDateInput,
-                    songwriterInput, composerInput, copyrightInput, explicitCheck, rightsCheck, checks);
+            ReleaseDraft draft = draftFromForm(titleInput, artistInput, releaseTypeInput, versionTitleInput, labelInput, genreInput, languageInput, releaseDateInput,
+                    upcInput, catalogInput, isrcInput, territoriesInput, songwriterInput, composerInput, copyrightInput, pLineInput, cLineInput,
+                    explicitCheck, rightsCheck, checks);
             DistributionGateway.ValidationResult validation = localGateway.validateRelease(draft);
             if (!validation.isValid()) {
                 state.setText("BLOCKED: " + String.join(" • ", validation.getIssues()));
@@ -497,20 +514,36 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private ReleaseDraft draftFromForm(EditText title, EditText artist, EditText label, EditText genre, EditText releaseDate,
-                                       EditText songwriter, EditText composer, EditText copyright,
+    private ReleaseDraft draftFromForm(EditText title, EditText artist, EditText releaseType, EditText versionTitle,
+                                       EditText label, EditText genre, EditText language, EditText releaseDate,
+                                       EditText upc, EditText catalogNumber, EditText isrc, EditText territories,
+                                       EditText songwriter, EditText composer, EditText copyright, EditText pLine, EditText cLine,
                                        CheckBox explicitCheck, CheckBox rightsCheck, List<CheckBox> checks) {
         ReleaseDraft draft = new ReleaseDraft();
         draft.setTitle(title.getText().toString());
         draft.setArtistName(artist.getText().toString());
+        draft.setReleaseType(releaseType.getText().toString());
+        draft.setVersionTitle(versionTitle.getText().toString());
         draft.setLabelName(label.getText().toString());
         draft.setGenre(genre.getText().toString());
+        draft.setLanguage(language.getText().toString());
         draft.setReleaseDate(releaseDate.getText().toString());
+        draft.setUpc(upc.getText().toString());
+        draft.setCatalogNumber(catalogNumber.getText().toString());
+        draft.setIsrc(isrc.getText().toString());
         draft.setSongwriter(songwriter.getText().toString());
         draft.setComposer(composer.getText().toString());
         draft.setCopyrightOwner(copyright.getText().toString());
+        draft.setPLine(pLine.getText().toString());
+        draft.setCLine(cLine.getText().toString());
         draft.setExplicitContent(explicitCheck.isChecked());
         draft.setRightsConfirmed(rightsCheck.isChecked());
+        List<String> territoryRows = new ArrayList<>();
+        for (String value : territories.getText().toString().split(",")) {
+            String clean = value.trim();
+            if (!clean.isEmpty()) territoryRows.add(clean);
+        }
+        draft.setTerritories(territoryRows);
         if (selectedAudio != null) draft.setAudio(selectedAudio.uri, selectedAudio.name, selectedAudio.mime, selectedAudio.sizeBytes, selectedAudio.durationMs);
         if (selectedArtwork != null) draft.setArtwork(selectedArtwork.uri, selectedArtwork.name, selectedArtwork.mime, selectedArtwork.sizeBytes, selectedArtwork.width, selectedArtwork.height);
         List<String> destinations = new ArrayList<>();
