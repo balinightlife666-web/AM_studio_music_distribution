@@ -130,7 +130,17 @@ function go(id){
   scrollTo({top:0,behavior:'smooth'});
 }
 function releaseCard(r){
-  return `<div class="card release"><div><b>${esc(r.title||'Untitled')}</b><small>${esc(r.artistName||'—')} • ${esc(r.releaseDate||'—')}</small><small class="mono">${esc(r.id||'')}</small></div><span class="status ${esc(r.status)}">${esc(r.status||'DRAFT')}</span></div>`;
+  const takedown=['APPROVED','LIVE','PARTIALLY_LIVE'].includes(r.status)?`<button class="btn secondary" style="margin-top:8px" onclick="event.stopPropagation();requestTakedown('${esc(r.id)}')">REQUEST TAKEDOWN</button>`:'';
+  return `<div class="card release"><div><b>${esc(r.title||'Untitled')}</b><small>${esc(r.artistName||'—')} • ${esc(r.releaseDate||'—')}</small><small class="mono">${esc(r.id||'')}</small>${takedown}</div><span class="status ${esc(r.status)}">${esc(r.status||'DRAFT')}</span></div>`;
+}
+async function requestTakedown(id){
+  const reason=prompt('Reason for takedown request');
+  if(!reason||!reason.trim())return;
+  try{
+    await ensureSession();
+    const r=await api('/v1/releases/'+encodeURIComponent(id)+'/takedown-request',{method:'POST',body:{reason:reason.trim()}});
+    toast('Takedown queued: '+r.request.status);
+  }catch(e){toast(e.message||String(e))}
 }
 function renderHome(){
   const review=releases.filter(r=>r.status==='IN_REVIEW').length, approved=releases.filter(r=>r.status==='APPROVED').length;
