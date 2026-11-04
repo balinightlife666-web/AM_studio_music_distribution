@@ -15,8 +15,15 @@ public final class ReleaseDraft {
     private String artistName;
     private String labelName;
     private String releaseType;
+    private String versionTitle;
     private String genre;
+    private String language;
     private String releaseDate;
+    private String upc;
+    private String catalogNumber;
+    private String isrc;
+    private String pLine;
+    private String cLine;
     private String songwriter;
     private String composer;
     private String copyrightOwner;
@@ -36,6 +43,7 @@ public final class ReleaseDraft {
     private ReleaseStatus status;
     private long updatedAt;
     private final List<String> destinations;
+    private final List<String> territories;
 
     public ReleaseDraft() {
         this.id = "rel_" + UUID.randomUUID().toString().replace("-", "");
@@ -43,9 +51,16 @@ public final class ReleaseDraft {
         this.title = "";
         this.artistName = "";
         this.labelName = "AM STUDIO";
-        this.releaseType = "Single";
+        this.releaseType = "SINGLE";
+        this.versionTitle = "";
         this.genre = "";
+        this.language = "";
         this.releaseDate = "";
+        this.upc = "";
+        this.catalogNumber = "";
+        this.isrc = "";
+        this.pLine = "";
+        this.cLine = "";
         this.songwriter = "";
         this.composer = "";
         this.copyrightOwner = "";
@@ -58,6 +73,8 @@ public final class ReleaseDraft {
         this.status = ReleaseStatus.DRAFT;
         this.updatedAt = System.currentTimeMillis();
         this.destinations = new ArrayList<>();
+        this.territories = new ArrayList<>();
+        this.territories.add("WORLDWIDE");
     }
 
     public String getId() { return id; }
@@ -66,8 +83,15 @@ public final class ReleaseDraft {
     public String getArtistName() { return artistName; }
     public String getLabelName() { return labelName; }
     public String getReleaseType() { return releaseType; }
+    public String getVersionTitle() { return versionTitle; }
     public String getGenre() { return genre; }
+    public String getLanguage() { return language; }
     public String getReleaseDate() { return releaseDate; }
+    public String getUpc() { return upc; }
+    public String getCatalogNumber() { return catalogNumber; }
+    public String getIsrc() { return isrc; }
+    public String getPLine() { return pLine; }
+    public String getCLine() { return cLine; }
     public String getSongwriter() { return songwriter; }
     public String getComposer() { return composer; }
     public String getCopyrightOwner() { return copyrightOwner; }
@@ -87,14 +111,22 @@ public final class ReleaseDraft {
     public ReleaseStatus getStatus() { return status; }
     public long getUpdatedAt() { return updatedAt; }
     public List<String> getDestinations() { return new ArrayList<>(destinations); }
+    public List<String> getTerritories() { return new ArrayList<>(territories); }
 
     public void setBackendReleaseId(String value) { backendReleaseId = clean(value); touch(); }
     public void setTitle(String value) { title = clean(value); touch(); }
     public void setArtistName(String value) { artistName = clean(value); touch(); }
     public void setLabelName(String value) { labelName = clean(value); touch(); }
-    public void setReleaseType(String value) { releaseType = clean(value); touch(); }
+    public void setReleaseType(String value) { releaseType = clean(value).toUpperCase(); touch(); }
+    public void setVersionTitle(String value) { versionTitle = clean(value); touch(); }
     public void setGenre(String value) { genre = clean(value); touch(); }
+    public void setLanguage(String value) { language = clean(value).toLowerCase(); touch(); }
     public void setReleaseDate(String value) { releaseDate = clean(value); touch(); }
+    public void setUpc(String value) { upc = clean(value).replaceAll("\\D", ""); touch(); }
+    public void setCatalogNumber(String value) { catalogNumber = clean(value); touch(); }
+    public void setIsrc(String value) { isrc = clean(value).toUpperCase().replaceAll("[^A-Z0-9]", ""); touch(); }
+    public void setPLine(String value) { pLine = clean(value); touch(); }
+    public void setCLine(String value) { cLine = clean(value); touch(); }
     public void setSongwriter(String value) { songwriter = clean(value); touch(); }
     public void setComposer(String value) { composer = clean(value); touch(); }
     public void setCopyrightOwner(String value) { copyrightOwner = clean(value); touch(); }
@@ -132,6 +164,18 @@ public final class ReleaseDraft {
         touch();
     }
 
+    public void setTerritories(List<String> values) {
+        territories.clear();
+        if (values != null) {
+            for (String value : values) {
+                String normalized = clean(value).toUpperCase();
+                if (!normalized.isEmpty() && !territories.contains(normalized)) territories.add(normalized);
+            }
+        }
+        if (territories.isEmpty()) territories.add("WORLDWIDE");
+        touch();
+    }
+
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
         json.put("id", id);
@@ -140,8 +184,15 @@ public final class ReleaseDraft {
         json.put("artistName", artistName);
         json.put("labelName", labelName);
         json.put("releaseType", releaseType);
+        json.put("versionTitle", versionTitle);
         json.put("genre", genre);
+        json.put("language", language);
         json.put("releaseDate", releaseDate);
+        json.put("upc", upc);
+        json.put("catalogNumber", catalogNumber);
+        json.put("isrc", isrc);
+        json.put("pLine", pLine);
+        json.put("cLine", cLine);
         json.put("songwriter", songwriter);
         json.put("composer", composer);
         json.put("copyrightOwner", copyrightOwner);
@@ -163,6 +214,9 @@ public final class ReleaseDraft {
         JSONArray stores = new JSONArray();
         for (String destination : destinations) stores.put(destination);
         json.put("destinations", stores);
+        JSONArray territoryRows = new JSONArray();
+        for (String territory : territories) territoryRows.put(territory);
+        json.put("territories", territoryRows);
         return json;
     }
 
@@ -174,9 +228,16 @@ public final class ReleaseDraft {
         draft.title = json.optString("title", "");
         draft.artistName = json.optString("artistName", "");
         draft.labelName = json.optString("labelName", "AM STUDIO");
-        draft.releaseType = json.optString("releaseType", "Single");
+        draft.releaseType = json.optString("releaseType", "SINGLE").toUpperCase();
+        draft.versionTitle = json.optString("versionTitle", "");
         draft.genre = json.optString("genre", "");
+        draft.language = json.optString("language", "");
         draft.releaseDate = json.optString("releaseDate", "");
+        draft.upc = json.optString("upc", "");
+        draft.catalogNumber = json.optString("catalogNumber", "");
+        draft.isrc = json.optString("isrc", "");
+        draft.pLine = json.optString("pLine", "");
+        draft.cLine = json.optString("cLine", "");
         draft.songwriter = json.optString("songwriter", "");
         draft.composer = json.optString("composer", "");
         draft.copyrightOwner = json.optString("copyrightOwner", "");
@@ -203,6 +264,15 @@ public final class ReleaseDraft {
                 if (!value.isEmpty()) draft.destinations.add(value);
             }
         }
+        draft.territories.clear();
+        JSONArray territoryRows = json.optJSONArray("territories");
+        if (territoryRows != null) {
+            for (int i = 0; i < territoryRows.length(); i++) {
+                String value = clean(territoryRows.optString(i, "")).toUpperCase();
+                if (!value.isEmpty() && !draft.territories.contains(value)) draft.territories.add(value);
+            }
+        }
+        if (draft.territories.isEmpty()) draft.territories.add("WORLDWIDE");
         return draft;
     }
 
