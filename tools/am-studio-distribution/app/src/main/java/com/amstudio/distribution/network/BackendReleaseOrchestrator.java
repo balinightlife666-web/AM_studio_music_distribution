@@ -76,17 +76,46 @@ public final class BackendReleaseOrchestrator {
     private JSONObject toCanonicalPayload(ReleaseDraft draft, String audioAssetId, String artworkAssetId) throws Exception {
         JSONObject payload = new JSONObject();
         payload.put("title", draft.getTitle());
+        payload.put("versionTitle", draft.getVersionTitle());
+        payload.put("releaseType", draft.getReleaseType().isEmpty() ? "SINGLE" : draft.getReleaseType());
         payload.put("artistName", draft.getArtistName());
         payload.put("labelName", draft.getLabelName());
         payload.put("genre", draft.getGenre());
+        payload.put("language", draft.getLanguage());
         payload.put("releaseDate", draft.getReleaseDate());
         payload.put("songwriter", draft.getSongwriter());
         payload.put("composer", draft.getComposer());
         payload.put("copyrightOwner", draft.getCopyrightOwner());
+        payload.put("pLine", draft.getPLine());
+        payload.put("cLine", draft.getCLine());
+        payload.put("upc", draft.getUpc());
+        payload.put("catalogNumber", draft.getCatalogNumber());
         payload.put("explicitContent", draft.isExplicitContent());
         payload.put("rightsConfirmed", draft.isRightsConfirmed());
         if (audioAssetId != null && !audioAssetId.isEmpty()) payload.put("audioAssetId", audioAssetId);
         if (artworkAssetId != null && !artworkAssetId.isEmpty()) payload.put("artworkAssetId", artworkAssetId);
+
+        JSONArray territories = new JSONArray();
+        for (String territory : draft.getTerritories()) territories.put(territory);
+        payload.put("territories", territories);
+
+        JSONArray tracks = new JSONArray();
+        JSONObject track = new JSONObject();
+        track.put("id", "track_1");
+        track.put("title", draft.getTitle());
+        track.put("versionTitle", draft.getVersionTitle());
+        track.put("artistName", draft.getArtistName());
+        track.put("songwriter", draft.getSongwriter());
+        track.put("composer", draft.getComposer());
+        track.put("copyrightOwner", draft.getCopyrightOwner());
+        track.put("isrc", draft.getIsrc());
+        track.put("trackNumber", 1);
+        track.put("discNumber", 1);
+        track.put("explicitContent", draft.isExplicitContent());
+        if (audioAssetId != null && !audioAssetId.isEmpty()) track.put("audioAssetId", audioAssetId);
+        tracks.put(track);
+        payload.put("tracks", tracks);
+
         JSONArray destinations = new JSONArray();
         for (String destination : draft.getDestinations()) destinations.put(destination);
         payload.put("destinations", destinations);
