@@ -20,6 +20,12 @@ public final class SandboxDistributionGateway implements DistributionGateway {
         if (draft.getGenre().trim().isEmpty()) issues.add("Genre wajib diisi.");
         if (draft.getReleaseDate().trim().isEmpty()) issues.add("Tanggal rilis wajib diisi.");
         if (draft.getCopyrightOwner().trim().isEmpty()) issues.add("Pemilik copyright wajib diisi.");
+        String releaseType = draft.getReleaseType().trim().toUpperCase(Locale.US);
+        if (!(releaseType.equals("SINGLE") || releaseType.equals("EP") || releaseType.equals("ALBUM"))) issues.add("Release type harus SINGLE, EP, atau ALBUM.");
+        String upc = draft.getUpc().trim();
+        if (!upc.isEmpty() && !upc.matches("\\d{12,14}")) issues.add("UPC/EAN/GTIN harus 12–14 digit.");
+        String isrc = draft.getIsrc().trim().toUpperCase(Locale.US);
+        if (!isrc.isEmpty() && !isrc.matches("^[A-Z]{2}[A-Z0-9]{3}\\d{7}$")) issues.add("Format ISRC tidak valid.");
         if (draft.getDestinations().isEmpty()) issues.add("Pilih minimal satu platform tujuan.");
 
         if (draft.getAudioUri().isEmpty()) {
