@@ -122,6 +122,35 @@ const SCHEMA_STATEMENTS = [
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS am_royalty_imports (
+    id TEXT PRIMARY KEY,
+    provider_key TEXT NOT NULL,
+    statement_ref TEXT NOT NULL,
+    status TEXT NOT NULL,
+    rows_count INTEGER NOT NULL DEFAULT 0,
+    total_amount_minor INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS am_takedown_requests (
+    id TEXT PRIMARY KEY,
+    release_id TEXT NOT NULL,
+    owner_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL,
+    admin_note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS am_event_outbox (
+    id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    payload TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    created_at TEXT NOT NULL,
+    delivered_at TEXT
+  )`,
   `CREATE TABLE IF NOT EXISTS am_admin_credentials (
     id TEXT PRIMARY KEY,
     token_hash TEXT NOT NULL,
@@ -134,6 +163,9 @@ const SCHEMA_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS am_asset_blobs_asset_idx ON am_asset_blobs(asset_id, chunk_index)',
   'CREATE INDEX IF NOT EXISTS am_audit_entity_created_idx ON am_audit_events(entity_id, created_at DESC)',
   'CREATE INDEX IF NOT EXISTS am_royalty_owner_created_idx ON am_royalty_ledger(owner_id, created_at ASC)',
+  'CREATE INDEX IF NOT EXISTS am_royalty_source_ref_idx ON am_royalty_ledger(source_ref)',
+  'CREATE INDEX IF NOT EXISTS am_takedown_release_idx ON am_takedown_requests(release_id, created_at DESC)',
+  'CREATE INDEX IF NOT EXISTS am_outbox_status_idx ON am_event_outbox(status, created_at ASC)',
   'CREATE INDEX IF NOT EXISTS am_provider_delivery_release_idx ON am_provider_deliveries(release_id, created_at DESC)',
 ];
 
@@ -282,6 +314,12 @@ async function audit(env, actorId, action, entityId, priorState = null, nextStat
   await env.DB.prepare(
     'INSERT INTO am_audit_events (id, actor_id, action, entity_id, prior_state, next_state, meta, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(newId('aud'), actorId, action, entityId, priorState, nextState, JSON.stringify(meta || {}), now()).run();
+}
+
+async function emitEvent(env, eventType, entityId, payload = {}) {
+  await env.DB.prepare(
+    'INSERT INTO am_event_outbox (id, event_type, entity_id, payload, status, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(newId('evt'), eventType, entityId, JSON.stringify(payload || {}), 'PENDING', now()).run();
 }
 
 async function requireSession(request, env) {
@@ -676,6 +714,7 @@ async function handleSubmitReview(request, env, id) {
   if (release.status !== 'READY_FOR_REVIEW') return apiError(409, 'RELEASE_NOT_READY_FOR_REVIEW', 'Run a passing preflight first');
   await env.DB.prepare('UPDATE am_releases SET status = ?, updated_at = ? WHERE id = ? AND owner_id = ?').bind('IN_REVIEW', now(), id, user.id).run();
   await audit(env, user.id, 'RELEASE_SUBMITTED_FOR_REVIEW', id, 'READY_FOR_REVIEW', 'IN_REVIEW');
+  await emitEvent(env, 'RELEASE_SUBMITTED_FOR_REVIEW', id, { ownerId: user.id });
   return json({ release: await releaseById(env, id, user.id), requestId: requestId() });
 }
 
@@ -696,6 +735,148 @@ async function handleAdminBootstrap(request, env) {
     .bind('primary', tokenHash, timestamp, timestamp).run();
   await audit(env, 'admin-bootstrap', 'ADMIN_BOOTSTRAPPED', 'admin', null, 'CONFIGURED');
   return json({ ok: true, token, tokenType: 'Admin', environment: 'DEV_SANDBOX', requestId: requestId() }, 201);
+}
+
+async function handleTakedownRequest(request, env, releaseId) {
+  const user = await requireSession(request, env);
+  if (!user) return apiError(401, 'UNAUTHORIZED', 'Valid bearer token required');
+  const release = await releaseById(env, releaseId, user.id);
+  if (!release) return apiError(404, 'RELEASE_NOT_FOUND', 'Release not found');
+  const body = await readJson(request);
+  const reason = clean(body.reason).slice(0, 2000);
+  if (!reason) return apiError(400, 'TAKEDOWN_REASON_REQUIRED', 'Reason is required');
+  const existing = await env.DB.prepare(
+    "SELECT id, status FROM am_takedown_requests WHERE release_id = ? AND owner_id = ? AND status IN ('REQUESTED','APPROVED_INTERNAL_WAITING_PROVIDER') ORDER BY created_at DESC LIMIT 1"
+  ).bind(releaseId, user.id).first();
+  if (existing) return apiError(409, 'TAKEDOWN_ALREADY_OPEN', 'An open takedown request already exists', { requestId: existing.id, status: existing.status });
+  const id = newId('tdr');
+  const timestamp = now();
+  await env.DB.prepare(
+    'INSERT INTO am_takedown_requests (id, release_id, owner_id, reason, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, releaseId, user.id, reason, 'REQUESTED', timestamp, timestamp).run();
+  await audit(env, user.id, 'TAKEDOWN_REQUESTED', releaseId, release.status, release.status, { takedownRequestId: id, reason });
+  await emitEvent(env, 'TAKEDOWN_REQUESTED', releaseId, { takedownRequestId: id, ownerId: user.id });
+  return json({ request: { id, releaseId, reason, status: 'REQUESTED', createdAt: timestamp }, requestId: requestId() }, 201);
+}
+
+async function handleAdminRoyaltyImport(request, env) {
+  if (!(await requireAdmin(request, env))) return apiError(401, 'ADMIN_UNAUTHORIZED', 'Valid admin token required');
+  const body = await readJson(request);
+  const providerKey = clean(body.providerKey) || 'MANUAL_PROVIDER_IMPORT';
+  const statementRef = clean(body.statementRef);
+  const entries = Array.isArray(body.entries) ? body.entries : [];
+  if (!statementRef) return apiError(400, 'STATEMENT_REF_REQUIRED', 'statementRef is required');
+  if (!entries.length) return apiError(400, 'ROYALTY_ENTRIES_REQUIRED', 'At least one royalty entry is required');
+  if (entries.length > 1000) return apiError(413, 'ROYALTY_IMPORT_TOO_LARGE', 'Import is capped at 1000 entries per request');
+
+  const duplicateImport = await env.DB.prepare('SELECT id, status FROM am_royalty_imports WHERE statement_ref = ? LIMIT 1').bind(statementRef).first();
+  if (duplicateImport) return apiError(409, 'STATEMENT_ALREADY_IMPORTED', 'This statementRef already exists', { importId: duplicateImport.id, status: duplicateImport.status });
+
+  const importId = newId('rimp');
+  const timestamp = now();
+  await env.DB.prepare(
+    'INSERT INTO am_royalty_imports (id, provider_key, statement_ref, status, rows_count, total_amount_minor, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(importId, providerKey, statementRef, 'IMPORTING', 0, 0, timestamp, timestamp).run();
+
+  let imported = 0, skipped = 0, total = 0;
+  for (let index = 0; index < entries.length; index++) {
+    const row = entries[index] || {};
+    const ownerId = clean(row.ownerId) || 'usr_sandbox_owner';
+    const currency = clean(row.currency).toUpperCase();
+    const amountMinor = Math.trunc(Number(row.amountMinor));
+    if (!/^[A-Z]{3}$/.test(currency) || !Number.isFinite(amountMinor) || amountMinor === 0) {
+      skipped++;
+      continue;
+    }
+    const sourceRef = clean(row.sourceRef) || `${statementRef}:${index + 1}`;
+    const exists = await env.DB.prepare('SELECT id FROM am_royalty_ledger WHERE source_ref = ? LIMIT 1').bind(sourceRef).first();
+    if (exists) { skipped++; continue; }
+    const metadata = {
+      importId,
+      providerKey,
+      statementRef,
+      releaseId: clean(row.releaseId),
+      trackId: clean(row.trackId),
+      isrc: normalizeIsrc(row.isrc),
+      dsp: clean(row.dsp),
+      territory: clean(row.territory).toUpperCase(),
+      period: clean(row.period),
+      raw: row.metadata && typeof row.metadata === 'object' ? row.metadata : {},
+    };
+    await env.DB.prepare(
+      'INSERT INTO am_royalty_ledger (id, owner_id, event_type, bucket, amount_minor, currency, source_ref, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(newId('roy'), ownerId, 'PROVIDER_STATEMENT', 'PENDING', amountMinor, currency, sourceRef, JSON.stringify(metadata), now()).run();
+    imported++;
+    total += amountMinor;
+  }
+  const status = imported ? 'IMPORTED_PENDING_RECONCILIATION' : 'NO_VALID_ROWS';
+  await env.DB.prepare('UPDATE am_royalty_imports SET status = ?, rows_count = ?, total_amount_minor = ?, updated_at = ? WHERE id = ?')
+    .bind(status, imported, total, now(), importId).run();
+  await audit(env, 'admin', 'ROYALTY_STATEMENT_IMPORTED', importId, null, status, { providerKey, statementRef, imported, skipped, total });
+  await emitEvent(env, 'ROYALTY_STATEMENT_IMPORTED', importId, { providerKey, statementRef, imported, skipped, total });
+  return json({ importId, status, imported, skipped, totalAmountMinor: total, requestId: requestId() }, 201);
+}
+
+async function handleAdminRoyaltyReconcile(request, env) {
+  if (!(await requireAdmin(request, env))) return apiError(401, 'ADMIN_UNAUTHORIZED', 'Valid admin token required');
+  const body = await readJson(request);
+  const entryId = clean(body.entryId);
+  if (!entryId) return apiError(400, 'LEDGER_ENTRY_REQUIRED', 'entryId is required');
+  const row = await env.DB.prepare(
+    "SELECT id, owner_id, amount_minor, currency, source_ref, metadata FROM am_royalty_ledger WHERE id = ? AND bucket = 'PENDING' LIMIT 1"
+  ).bind(entryId).first();
+  if (!row) return apiError(404, 'PENDING_LEDGER_ENTRY_NOT_FOUND', 'Pending ledger entry not found');
+
+  const existing = await env.DB.prepare("SELECT id FROM am_royalty_ledger WHERE source_ref = ? LIMIT 1")
+    .bind(`reconcile:${entryId}:available`).first();
+  if (existing) return apiError(409, 'LEDGER_ENTRY_ALREADY_RECONCILED', 'Entry is already reconciled');
+
+  const timestamp = now();
+  const meta = safeJson(row.metadata);
+  await env.DB.batch([
+    env.DB.prepare(
+      'INSERT INTO am_royalty_ledger (id, owner_id, event_type, bucket, amount_minor, currency, source_ref, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(newId('roy'), row.owner_id, 'RECONCILIATION_ADJUSTMENT', 'PENDING', -Number(row.amount_minor), row.currency, `reconcile:${entryId}:pending`, JSON.stringify({ ...meta, reconcilesEntryId: entryId }), timestamp),
+    env.DB.prepare(
+      'INSERT INTO am_royalty_ledger (id, owner_id, event_type, bucket, amount_minor, currency, source_ref, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(newId('roy'), row.owner_id, 'RECONCILIATION_ADJUSTMENT', 'AVAILABLE', Number(row.amount_minor), row.currency, `reconcile:${entryId}:available`, JSON.stringify({ ...meta, reconcilesEntryId: entryId }), timestamp),
+  ]);
+  await audit(env, 'admin', 'ROYALTY_RECONCILED', entryId, 'PENDING', 'AVAILABLE', { amountMinor: Number(row.amount_minor), currency: row.currency });
+  await emitEvent(env, 'ROYALTY_AVAILABLE', entryId, { ownerId: row.owner_id, amountMinor: Number(row.amount_minor), currency: row.currency });
+  return json({ ok: true, entryId, movedTo: 'AVAILABLE', amountMinor: Number(row.amount_minor), currency: row.currency, requestId: requestId() });
+}
+
+async function handleAdminTakedownDecision(request, env, id) {
+  if (!(await requireAdmin(request, env))) return apiError(401, 'ADMIN_UNAUTHORIZED', 'Valid admin token required');
+  const row = await env.DB.prepare('SELECT * FROM am_takedown_requests WHERE id = ? LIMIT 1').bind(id).first();
+  if (!row) return apiError(404, 'TAKEDOWN_REQUEST_NOT_FOUND', 'Takedown request not found');
+  if (row.status !== 'REQUESTED') return apiError(409, 'TAKEDOWN_STATE_INVALID', `Takedown request is ${row.status}`);
+  const body = await readJson(request);
+  const action = clean(body.action).toUpperCase();
+  const note = clean(body.note).slice(0, 2000);
+  if (!['APPROVE','DENY'].includes(action)) return apiError(400, 'TAKEDOWN_ACTION_INVALID', 'action must be APPROVE or DENY');
+  const status = action === 'APPROVE' ? 'APPROVED_INTERNAL_WAITING_PROVIDER' : 'DENIED';
+  await env.DB.prepare('UPDATE am_takedown_requests SET status = ?, admin_note = ?, updated_at = ? WHERE id = ?')
+    .bind(status, note, now(), id).run();
+  await audit(env, 'admin', `TAKEDOWN_${action}`, row.release_id, row.status, status, { takedownRequestId: id, note });
+  await emitEvent(env, `TAKEDOWN_${action}`, row.release_id, { takedownRequestId: id, status });
+  return json({ ok: true, requestId: id, releaseId: row.release_id, status, dspDeliveryAttempted: false });
+}
+
+async function handleAdminOperations(request, env) {
+  if (!(await requireAdmin(request, env))) return apiError(401, 'ADMIN_UNAUTHORIZED', 'Valid admin token required');
+  const [takedowns, imports, outbox] = await Promise.all([
+    env.DB.prepare('SELECT id, release_id, owner_id, reason, status, admin_note, created_at, updated_at FROM am_takedown_requests ORDER BY created_at DESC LIMIT 100').all(),
+    env.DB.prepare('SELECT id, provider_key, statement_ref, status, rows_count, total_amount_minor, created_at, updated_at FROM am_royalty_imports ORDER BY created_at DESC LIMIT 100').all(),
+    env.DB.prepare('SELECT id, event_type, entity_id, payload, status, created_at, delivered_at FROM am_event_outbox ORDER BY created_at DESC LIMIT 100').all(),
+  ]);
+  return json({
+    takedowns: takedowns.results || [],
+    royaltyImports: imports.results || [],
+    outbox: (outbox.results || []).map(row => ({ ...row, payload: safeJson(row.payload) })),
+    providerDeliveryEnabled: false,
+    payoutEnabled: false,
+  });
 }
 
 async function handleAdminOverview(request, env) {
@@ -805,6 +986,7 @@ async function handleAdminDecision(request, env, id) {
   await env.DB.prepare('UPDATE am_releases SET status = ?, revision = ?, updated_at = ? WHERE id = ?')
     .bind(nextStatus, revision, now(), id).run();
   await audit(env, 'admin', `ADMIN_${action}`, id, release.status, nextStatus, { note });
+  await emitEvent(env, `RELEASE_${nextStatus}`, id, { note });
   return json({ ok: true, releaseId: id, priorStatus: release.status, status: nextStatus, note });
 }
 
@@ -830,8 +1012,15 @@ async function handleApi(request, env, url) {
   if (match && request.method === 'PUT') return handleUploadContent(request, env, match[1]);
   match = path.match(/^\/v1\/uploads\/([A-Za-z0-9_-]+)\/complete$/);
   if (match && request.method === 'POST') return handleCompleteUpload(request, env, match[1]);
+  match = path.match(/^\/v1\/releases\/([A-Za-z0-9_-]+)\/takedown-request$/);
+  if (match && request.method === 'POST') return handleTakedownRequest(request, env, match[1]);
 
   if (path === '/admin/bootstrap' && request.method === 'POST') return handleAdminBootstrap(request, env);
+  if (path === '/admin/royalties/import' && request.method === 'POST') return handleAdminRoyaltyImport(request, env);
+  if (path === '/admin/royalties/reconcile' && request.method === 'POST') return handleAdminRoyaltyReconcile(request, env);
+  if (path === '/admin/operations' && request.method === 'GET') return handleAdminOperations(request, env);
+  match = path.match(/^\/admin\/takedowns\/([A-Za-z0-9_-]+)\/decision$/);
+  if (match && request.method === 'POST') return handleAdminTakedownDecision(request, env, match[1]);
   if (path === '/admin/overview' && request.method === 'GET') return handleAdminOverview(request, env);
   match = path.match(/^\/admin\/releases\/([A-Za-z0-9_-]+)$/);
   if (match && request.method === 'GET') return handleAdminRelease(request, env, match[1]);
