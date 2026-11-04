@@ -159,7 +159,91 @@ function safeJson(value, fallback = {}) {
   try { return JSON.parse(String(value || '')); } catch { return fallback; }
 }
 
+function normalizeIsrc(value) {
+  return clean(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function normalizeBarcode(value) {
+  return clean(value).replace(/\D/g, '');
+}
+
+function canonicalTrack(input = {}, index = 0, defaults = {}) {
+  const featuredArtists = Array.isArray(input.featuredArtists)
+    ? [...new Set(input.featuredArtists.map(clean).filter(Boolean))]
+    : clean(input.featuredArtists).split(',').map(clean).filter(Boolean);
+  return {
+    id: clean(input.id) || `track_${index + 1}`,
+    title: clean(input.title),
+    versionTitle: clean(input.versionTitle),
+    artistName: clean(input.artistName) || clean(defaults.artistName),
+    featuredArtists,
+    songwriter: clean(input.songwriter),
+    composer: clean(input.composer),
+    copyrightOwner: clean(input.copyrightOwner) || clean(defaults.copyrightOwner),
+    isrc: normalizeIsrc(input.isrc),
+    trackNumber: Math.max(1, Math.trunc(Number(input.trackNumber || index + 1))),
+    discNumber: Math.max(1, Math.trunc(Number(input.discNumber || 1))),
+    explicitContent: Boolean(input.explicitContent),
+    audioAssetId: clean(input.audioAssetId),
+  };
+}
+
+function releaseTracks(release = {}) {
+  if (Array.isArray(release.tracks) && release.tracks.length) return release.tracks;
+  if (release.audioAssetId || release.title || release.artistName) {
+    return [canonicalTrack({
+      id: 'track_1',
+      title: release.title,
+      artistName: release.artistName,
+      songwriter: release.songwriter,
+      composer: release.composer,
+      copyrightOwner: release.copyrightOwner,
+      explicitContent: release.explicitContent,
+      audioAssetId: release.audioAssetId,
+      trackNumber: 1,
+      discNumber: 1,
+    }, 0, release)];
+  }
+  return [];
+}
+
 function canonicalPayload(input = {}) {
+  const rawDestinations = Array.isArray(input.destinations) ? input.destinations : [];
+  const destinations = [...new Set(rawDestinations.map(clean).filter(Boolean))];
+  const rawTerritories = Array.isArray(input.territories) ? input.territories : [];
+  const territories = [...new Set(rawTerritories.map(v => clean(v).toUpperCase()).filter(Boolean))];
+  const releaseTypeRaw = clean(input.releaseType).toUpperCase();
+  const releaseType = ['SINGLE', 'EP', 'ALBUM'].includes(releaseTypeRaw) ? releaseTypeRaw : 'SINGLE';
+  const artistName = clean(input.artistName);
+  const copyrightOwner = clean(input.copyrightOwner);
+  const tracks = Array.isArray(input.tracks)
+    ? input.tracks.map((track, index) => canonicalTrack(track, index, { artistName, copyrightOwner }))
+    : [];
+  return {
+    title: clean(input.title),
+    versionTitle: clean(input.versionTitle),
+    releaseType,
+    artistName,
+    labelName: clean(input.labelName) || 'AM STUDIO',
+    genre: clean(input.genre),
+    language: clean(input.language).toLowerCase(),
+    releaseDate: clean(input.releaseDate),
+    songwriter: clean(input.songwriter),
+    composer: clean(input.composer),
+    copyrightOwner,
+    pLine: clean(input.pLine),
+    cLine: clean(input.cLine),
+    upc: normalizeBarcode(input.upc),
+    catalogNumber: clean(input.catalogNumber),
+    territories: territories.length ? territories : ['WORLDWIDE'],
+    explicitContent: Boolean(input.explicitContent),
+    rightsConfirmed: Boolean(input.rightsConfirmed),
+    audioAssetId: clean(input.audioAssetId),
+    artworkAssetId: clean(input.artworkAssetId),
+    tracks,
+    destinations,
+  };
+}) {
   const rawDestinations = Array.isArray(input.destinations) ? input.destinations : [];
   const destinations = [...new Set(rawDestinations.map(clean).filter(Boolean))];
   return {
@@ -276,20 +360,24 @@ async function releaseById(env, id, ownerId = '') {
 
 async function handleHealth(env) {
   let database = false;
-  let storage = false;
+  let fallbackStorage = false;
+  let r2 = false;
   try {
     await env.DB.prepare('SELECT 1 AS ok').first();
     database = true;
     await env.DB.prepare('SELECT COUNT(*) AS count FROM am_asset_blobs').first();
-    storage = true;
+    fallbackStorage = true;
   } catch {}
+  try { r2 = Boolean(env.ASSETS_BUCKET); } catch {}
+  const storage = r2 || fallbackStorage;
   return json({
     ok: database && storage,
     service: 'am-studio-distribution-backend',
     environment: 'DEV_SANDBOX',
     host: 'CLOUDFLARE',
     database: database ? 'D1' : 'UNAVAILABLE',
-    objectStorage: storage ? 'D1_BLOB_CHUNKS' : 'UNAVAILABLE',
+    objectStorage: r2 ? 'R2' : (fallbackStorage ? 'D1_BLOB_CHUNKS' : 'UNAVAILABLE'),
+    storageMigrationReady: true,
     distributionProvider: 'disabled',
     dspDeliveryEnabled: false,
     payoutEnabled: false,
@@ -431,11 +519,11 @@ async function handleCreateUpload(request, env) {
 
   if (!kind) return apiError(400, 'UPLOAD_KIND_INVALID', 'kind must be AUDIO_MASTER or ARTWORK');
   if (!fileName || !Number.isFinite(sizeBytes) || sizeBytes <= 0 || !checksum) return apiError(400, 'UPLOAD_METADATA_INVALID', 'fileName, sizeBytes and sha256 checksum are required');
-  if (sizeBytes > MAX_BYTES) return apiError(413, 'UPLOAD_TOO_LARGE', 'Individual sandbox assets are capped at 50 MB');
+  if (sizeBytes > MAX_BYTES) return apiError(413, 'UPLOAD_TOO_LARGE', 'Individual assets are currently capped at 50 MB');
 
   const id = newId('ast');
   const ext = (fileName.split('.').pop() || 'bin').replace(/[^A-Za-z0-9]/g, '').toLowerCase() || 'bin';
-  const storageKey = `am-studio/sandbox/${user.id}/${id}.${ext}`;
+  const storageKey = `am-studio/releases/${user.id}/${id}.${ext}`;
   const timestamp = now();
   await env.DB.prepare(
     'INSERT INTO am_assets (id, owner_id, kind, file_name, mime, size_bytes, checksum, status, storage_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
@@ -446,7 +534,7 @@ async function handleCreateUpload(request, env) {
     status: 'PENDING_UPLOAD',
     upload: {
       method: 'PUT',
-      mode: 'CLOUDFLARE_D1_CHUNK_STORAGE',
+      mode: env.ASSETS_BUCKET ? 'CLOUDFLARE_R2_VIA_API' : 'CLOUDFLARE_D1_CHUNK_STORAGE',
       target: `/v1/uploads/${id}/content`,
       expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
     },
@@ -462,10 +550,10 @@ async function handleUploadContent(request, env, id) {
   if (asset.status !== 'PENDING_UPLOAD') return apiError(409, 'ASSET_STATE_INVALID', `Asset cannot accept bytes while status=${asset.status}`);
 
   const declaredLength = Number(request.headers.get('content-length') || 0);
-  if (declaredLength > MAX_BYTES) return apiError(413, 'UPLOAD_TOO_LARGE', 'Individual sandbox assets are capped at 50 MB');
+  if (declaredLength > MAX_BYTES) return apiError(413, 'UPLOAD_TOO_LARGE', 'Individual assets are currently capped at 50 MB');
   const bytes = await request.arrayBuffer();
   if (bytes.byteLength <= 0) return apiError(400, 'UPLOAD_EMPTY', 'Uploaded file is empty');
-  if (bytes.byteLength > MAX_BYTES) return apiError(413, 'UPLOAD_TOO_LARGE', 'Individual sandbox assets are capped at 50 MB');
+  if (bytes.byteLength > MAX_BYTES) return apiError(413, 'UPLOAD_TOO_LARGE', 'Individual assets are currently capped at 50 MB');
 
   const verifiedChecksum = await sha256Bytes(bytes);
   if (bytes.byteLength !== Number(asset.size_bytes) || verifiedChecksum !== asset.checksum) {
@@ -475,26 +563,37 @@ async function handleUploadContent(request, env, id) {
     return apiError(409, 'UPLOAD_INTEGRITY_MISMATCH', 'Uploaded bytes do not match declared size/checksum');
   }
 
-  await env.DB.prepare('DELETE FROM am_asset_blobs WHERE asset_id = ?').bind(id).run();
-  const view = new Uint8Array(bytes);
-  const chunkSize = 256 * 1024;
-  let pending = [];
-  for (let offset = 0, chunkIndex = 0; offset < view.byteLength; offset += chunkSize, chunkIndex++) {
-    const chunk = view.slice(offset, Math.min(offset + chunkSize, view.byteLength));
-    pending.push(
-      env.DB.prepare('INSERT INTO am_asset_blobs (asset_id, chunk_index, bytes) VALUES (?, ?, ?)')
-        .bind(id, chunkIndex, chunk)
-    );
-    if (pending.length === 20) {
-      await env.DB.batch(pending);
-      pending = [];
+  let storage = 'D1_BLOB_CHUNKS';
+  if (env.ASSETS_BUCKET) {
+    await env.ASSETS_BUCKET.put(asset.storage_key, bytes, {
+      httpMetadata: { contentType: asset.mime || 'application/octet-stream' },
+      customMetadata: { assetId: id, ownerId: user.id, kind: asset.kind, checksum: verifiedChecksum },
+    });
+    await env.DB.prepare('DELETE FROM am_asset_blobs WHERE asset_id = ?').bind(id).run();
+    storage = 'R2';
+  } else {
+    await env.DB.prepare('DELETE FROM am_asset_blobs WHERE asset_id = ?').bind(id).run();
+    const view = new Uint8Array(bytes);
+    const chunkSize = 256 * 1024;
+    let pending = [];
+    for (let offset = 0, chunkIndex = 0; offset < view.byteLength; offset += chunkSize, chunkIndex++) {
+      const chunk = view.slice(offset, Math.min(offset + chunkSize, view.byteLength));
+      pending.push(
+        env.DB.prepare('INSERT INTO am_asset_blobs (asset_id, chunk_index, bytes) VALUES (?, ?, ?)')
+          .bind(id, chunkIndex, chunk)
+      );
+      if (pending.length === 20) {
+        await env.DB.batch(pending);
+        pending = [];
+      }
     }
+    if (pending.length) await env.DB.batch(pending);
   }
-  if (pending.length) await env.DB.batch(pending);
+
   await env.DB.prepare('UPDATE am_assets SET status = ?, verified_checksum = ?, updated_at = ? WHERE id = ? AND owner_id = ?')
     .bind('UPLOADED', verifiedChecksum, now(), id, user.id).run();
-  await audit(env, user.id, 'UPLOAD_BYTES_VERIFIED', id, 'PENDING_UPLOAD', 'UPLOADED');
-  return json({ assetId: id, status: 'UPLOADED', verifiedChecksum, sizeBytes: bytes.byteLength, requestId: requestId() });
+  await audit(env, user.id, 'UPLOAD_BYTES_VERIFIED', id, 'PENDING_UPLOAD', 'UPLOADED', { storage });
+  return json({ assetId: id, status: 'UPLOADED', verifiedChecksum, sizeBytes: bytes.byteLength, storage, requestId: requestId() });
 }
 
 async function handleCompleteUpload(request, env, id) {
@@ -541,27 +640,49 @@ async function handlePreflight(request, env, id) {
   if (!release.copyrightOwner) issue('copyrightOwner', 'COPYRIGHT_OWNER_REQUIRED');
   if (!release.rightsConfirmed) issue('rightsConfirmed', 'RIGHTS_DECLARATION_REQUIRED');
   if (!Array.isArray(release.destinations) || !release.destinations.length) issue('destinations', 'DESTINATION_REQUIRED');
+  if (release.upc && !/^\d{12,14}$/.test(release.upc)) issue('upc', 'UPC_EAN_GTIN_INVALID');
 
-  const audio = release.audioAssetId
-    ? await env.DB.prepare('SELECT id, kind, file_name, mime, status, duration_ms FROM am_assets WHERE id = ? AND owner_id = ? LIMIT 1').bind(release.audioAssetId, user.id).first()
-    : null;
+  const tracks = releaseTracks(release);
+  if (!tracks.length) issue('tracks', 'AT_LEAST_ONE_TRACK_REQUIRED');
+  if (release.releaseType === 'SINGLE' && tracks.length !== 1) issue('releaseType', 'SINGLE_REQUIRES_ONE_TRACK');
+
+  const usedTrackNumbers = new Set();
+  const usedIsrcs = new Set();
+  for (let index = 0; index < tracks.length; index++) {
+    const track = tracks[index];
+    const prefix = `tracks[${index}]`;
+    if (!track.title) issue(`${prefix}.title`, 'TRACK_TITLE_REQUIRED');
+    if (!track.artistName) issue(`${prefix}.artistName`, 'TRACK_ARTIST_REQUIRED');
+    if (!track.copyrightOwner) issue(`${prefix}.copyrightOwner`, 'TRACK_COPYRIGHT_OWNER_REQUIRED');
+    const trackKey = `${track.discNumber || 1}:${track.trackNumber || index + 1}`;
+    if (usedTrackNumbers.has(trackKey)) issue(`${prefix}.trackNumber`, 'TRACK_NUMBER_DUPLICATE');
+    usedTrackNumbers.add(trackKey);
+    if (track.isrc) {
+      if (!/^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(track.isrc)) issue(`${prefix}.isrc`, 'ISRC_INVALID');
+      if (usedIsrcs.has(track.isrc)) issue(`${prefix}.isrc`, 'ISRC_DUPLICATE_IN_RELEASE');
+      usedIsrcs.add(track.isrc);
+    }
+
+    const audio = track.audioAssetId
+      ? await env.DB.prepare('SELECT id, kind, file_name, mime, status, duration_ms FROM am_assets WHERE id = ? AND owner_id = ? LIMIT 1').bind(track.audioAssetId, user.id).first()
+      : null;
+    if (!audio || audio.kind !== 'AUDIO_MASTER' || audio.status !== 'VERIFIED') issue(`${prefix}.audioAssetId`, 'VERIFIED_AUDIO_MASTER_REQUIRED');
+    else {
+      const mime = String(audio.mime || '').toLowerCase();
+      const name = String(audio.file_name || '').toLowerCase();
+      if (!(mime.includes('wav') || mime.includes('flac') || name.endsWith('.wav') || name.endsWith('.flac'))) issue(`${prefix}.audioAssetId`, 'AUDIO_FORMAT_WAV_OR_FLAC_REQUIRED');
+    }
+  }
+
   const art = release.artworkAssetId
     ? await env.DB.prepare('SELECT id, kind, file_name, mime, status, width, height FROM am_assets WHERE id = ? AND owner_id = ? LIMIT 1').bind(release.artworkAssetId, user.id).first()
     : null;
-
-  if (!audio || audio.kind !== 'AUDIO_MASTER' || audio.status !== 'VERIFIED') issue('audioAssetId', 'VERIFIED_AUDIO_MASTER_REQUIRED');
-  else {
-    const mime = String(audio.mime || '').toLowerCase();
-    const name = String(audio.file_name || '').toLowerCase();
-    if (!(mime.includes('wav') || mime.includes('flac') || name.endsWith('.wav') || name.endsWith('.flac'))) issue('audioAssetId', 'AUDIO_FORMAT_WAV_OR_FLAC_REQUIRED');
-  }
-
   if (!art || art.kind !== 'ARTWORK' || art.status !== 'VERIFIED') issue('artworkAssetId', 'VERIFIED_ARTWORK_REQUIRED');
   else if (Number(art.width) < 3000 || Number(art.height) < 3000 || Number(art.width) !== Number(art.height)) issue('artworkAssetId', 'ARTWORK_SQUARE_3000_REQUIRED');
 
   const status = issues.length ? 'PREFLIGHT_REQUIRED' : 'READY_FOR_REVIEW';
   await env.DB.prepare('UPDATE am_releases SET status = ?, updated_at = ? WHERE id = ? AND owner_id = ?').bind(status, now(), id, user.id).run();
-  await audit(env, user.id, 'RELEASE_PREFLIGHT', id, release.status, status, { issues });
+  await audit(env, user.id, 'RELEASE_PREFLIGHT', id, release.status, status, { issues, trackCount: tracks.length });
   return json({ release: await releaseById(env, id, user.id), ok: issues.length === 0, status, issues, requestId: requestId() });
 }
 
@@ -644,13 +765,17 @@ async function handleAdminRelease(request, env, id) {
   if (!(await requireAdmin(request, env))) return apiError(401, 'ADMIN_UNAUTHORIZED', 'Valid admin token required');
   const release = await releaseById(env, id);
   if (!release) return apiError(404, 'RELEASE_NOT_FOUND', 'Release not found');
-  const ids = [release.audioAssetId || '', release.artworkAssetId || ''].filter(Boolean);
+  const ids = [
+    release.artworkAssetId || '',
+    release.audioAssetId || '',
+    ...releaseTracks(release).map(track => track.audioAssetId || ''),
+  ].filter(Boolean);
   const assets = [];
-  for (const assetId of ids) {
+  for (const assetId of [...new Set(ids)]) {
     const row = await env.DB.prepare('SELECT * FROM am_assets WHERE id = ? LIMIT 1').bind(assetId).first();
     if (row) assets.push({
       ...row,
-      mediaPath: `/admin/assets/${row.id}/content`,
+      mediaPath: `/api/admin/assets/${row.id}/content`,
     });
   }
   const auditRows = await env.DB.prepare('SELECT * FROM am_audit_events WHERE entity_id = ? ORDER BY created_at DESC LIMIT 100').bind(id).all();
@@ -661,14 +786,25 @@ async function handleAdminMedia(request, env, id) {
   if (!(await requireAdmin(request, env))) return apiError(401, 'ADMIN_UNAUTHORIZED', 'Valid admin token required');
   const asset = await env.DB.prepare('SELECT id, storage_key, mime, file_name, status FROM am_assets WHERE id = ? LIMIT 1').bind(id).first();
   if (!asset || !asset.storage_key) return apiError(404, 'ASSET_NOT_FOUND', 'Asset not found');
-  const chunks = await env.DB.prepare('SELECT chunk_index, bytes FROM am_asset_blobs WHERE asset_id = ? ORDER BY chunk_index ASC').bind(id).all();
-  if (!chunks.results || !chunks.results.length) return apiError(404, 'ASSET_BYTES_NOT_FOUND', 'Asset bytes not found');
-  const parts = chunks.results.map(row => row.bytes instanceof ArrayBuffer ? new Uint8Array(row.bytes) : row.bytes);
+
   const headers = new Headers();
   headers.set('content-type', asset.mime || 'application/octet-stream');
   headers.set('content-disposition', `inline; filename="${String(asset.file_name || 'asset').replace(/["\r\n]/g, '')}"`);
   headers.set('cache-control', 'private, no-store');
   headers.set('x-content-type-options', 'nosniff');
+
+  if (env.ASSETS_BUCKET) {
+    const object = await env.ASSETS_BUCKET.get(asset.storage_key);
+    if (object) {
+      object.writeHttpMetadata(headers);
+      headers.set('content-type', asset.mime || headers.get('content-type') || 'application/octet-stream');
+      return new Response(object.body, { status: 200, headers });
+    }
+  }
+
+  const chunks = await env.DB.prepare('SELECT chunk_index, bytes FROM am_asset_blobs WHERE asset_id = ? ORDER BY chunk_index ASC').bind(id).all();
+  if (!chunks.results || !chunks.results.length) return apiError(404, 'ASSET_BYTES_NOT_FOUND', 'Asset bytes not found');
+  const parts = chunks.results.map(row => row.bytes instanceof ArrayBuffer ? new Uint8Array(row.bytes) : row.bytes);
   return new Response(new Blob(parts, { type: asset.mime || 'application/octet-stream' }), { status: 200, headers });
 }
 
