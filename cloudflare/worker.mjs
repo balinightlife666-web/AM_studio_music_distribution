@@ -243,25 +243,6 @@ function canonicalPayload(input = {}) {
     tracks,
     destinations,
   };
-}) {
-  const rawDestinations = Array.isArray(input.destinations) ? input.destinations : [];
-  const destinations = [...new Set(rawDestinations.map(clean).filter(Boolean))];
-  return {
-    title: clean(input.title),
-    artistName: clean(input.artistName),
-    labelName: clean(input.labelName) || 'AM STUDIO',
-    genre: clean(input.genre),
-    releaseDate: clean(input.releaseDate),
-    songwriter: clean(input.songwriter),
-    composer: clean(input.composer),
-    copyrightOwner: clean(input.copyrightOwner),
-    explicitContent: Boolean(input.explicitContent),
-    rightsConfirmed: Boolean(input.rightsConfirmed),
-    audioAssetId: clean(input.audioAssetId),
-    artworkAssetId: clean(input.artworkAssetId),
-    destinations,
-  };
-}
 
 function normalizeChecksum(value) {
   const raw = clean(value).toLowerCase();
