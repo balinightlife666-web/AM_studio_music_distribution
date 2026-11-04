@@ -8,6 +8,7 @@ on:
     paths:
       - 'cloudflare/**'
       - 'web/admin/**'
+      - 'web/site/**'
       - 'wrangler.jsonc'
       - '.github/workflows/am-studio-cloudflare.yml'
   push:
@@ -16,6 +17,7 @@ on:
     paths:
       - 'cloudflare/**'
       - 'web/admin/**'
+      - 'web/site/**'
       - 'wrangler.jsonc'
       - '.github/workflows/am-studio-cloudflare.yml'
 
@@ -33,6 +35,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Node syntax check
+        run: node --check cloudflare/worker.mjs
 
       - name: Validate Worker bundle
         run: npx --yes wrangler@latest deploy --dry-run --outdir .wrangler-dry-run
